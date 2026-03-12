@@ -76,5 +76,9 @@ cat >> PROGRESS.md << 'EOF'
 # 4. Коммит
 git add .
 git commit -m "feat: выполнена задача Х"
+
+# 5. Run tests. , coverage, pretty
+npm run test
+...
 ```
 EOF

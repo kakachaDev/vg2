@@ -1,4 +1,4 @@
-import { Entity, Player } from '@vg2/core';
+import { Entity, Player, Vec2D } from '@vg2/core';
 import { Chunk } from './chunk.js';
 
 export class World {
@@ -7,6 +7,7 @@ export class World {
   private entities: Map<string, Entity> = new Map();
   private chunks: Map<string, Chunk> = new Map();
   private playerChunks: Map<string, Set<string>> = new Map();
+  private entityChunks: Map<string, string> = new Map();
 
   constructor(id: string, name: string) {
     this.id = id;
@@ -22,8 +23,34 @@ export class World {
     const entity = this.entities.get(entityId);
     if (entity) {
       this.playerChunks.delete(entityId);
+      this.entityChunks.delete(entityId);
     }
     return this.entities.delete(entityId);
+  }
+
+  public updateEntityPosition(entityId: string, newPosition: Vec2D): void {
+    const entity = this.entities.get(entityId);
+    if (!entity) return;
+
+    const oldChunkKey = this.entityChunks.get(entityId);
+    const newChunkX = Math.floor(newPosition.x / Chunk.SIZE);
+    const newChunkY = Math.floor(newPosition.y / Chunk.SIZE);
+    const newChunkKey = `${newChunkX},${newChunkY}`;
+
+    entity.position = newPosition;
+
+    if (oldChunkKey !== newChunkKey) {
+      if (oldChunkKey) {
+        const [oldX, oldY] = oldChunkKey.split(',').map(Number);
+        const oldChunk = this.getChunk(oldX, oldY);
+        oldChunk.removeEntity(entityId);
+      }
+
+      const newChunk = this.getChunk(newChunkX, newChunkY);
+      newChunk.addEntity(entity);
+      this.entityChunks.set(entityId, newChunkKey);
+      this.updateEntityChunks(entity);
+    }
   }
 
   public getEntity(id: string): Entity | undefined {

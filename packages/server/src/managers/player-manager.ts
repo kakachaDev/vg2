@@ -1,8 +1,11 @@
 import { Player, Vec2D } from '@vg2/core';
 import { Server } from '../core/server.js';
+import { CollisionDetector } from '../world/collision-detector.js';
 
 export class PlayerManager {
   private players: Map<string, Player> = new Map();
+  private lastMoveTimes: Map<string, number> = new Map();
+  private moveSequences: Map<string, number> = new Map();
   private server: Server;
 
   constructor(server: Server) {
@@ -11,6 +14,8 @@ export class PlayerManager {
 
   public addPlayer(player: Player): void {
     this.players.set(player.id, player);
+    this.lastMoveTimes.set(player.id, Date.now());
+    this.moveSequences.set(player.id, 0);
   }
 
   public removePlayer(playerId: string): boolean {
@@ -21,6 +26,8 @@ export class PlayerManager {
         world.removeEntity(playerId);
       }
     }
+    this.lastMoveTimes.delete(playerId);
+    this.moveSequences.delete(playerId);
     return this.players.delete(playerId);
   }
 
@@ -32,14 +39,86 @@ export class PlayerManager {
     return Array.from(this.players.values());
   }
 
-  public movePlayer(playerId: string, newPosition: Vec2D): boolean {
+  public movePlayer(playerId: string, newPosition: Vec2D, sequence: number): {
+    success: boolean;
+    authorizedPosition: Vec2D;
+    sequence: number;
+  } {
     const player = this.players.get(playerId);
     if (!player) {
-      return false;
+      return { success: false, authorizedPosition: new Vec2D(0, 0), sequence: 0 };
     }
+
+    const lastMove = this.lastMoveTimes.get(playerId) || 0;
+    const now = Date.now();
     
-    player.position = newPosition;
-    return true;
+    if (now - lastMove < 16) {
+      return { 
+        success: false, 
+        authorizedPosition: player.position, 
+        sequence: this.moveSequences.get(playerId) || 0 
+      };
+    }
+
+    const lastSequence = this.moveSequences.get(playerId) || 0;
+    if (sequence <= lastSequence) {
+      return { 
+        success: false, 
+        authorizedPosition: player.position, 
+        sequence: lastSequence 
+      };
+    }
+
+    const distance = player.position.distance(newPosition);
+    const maxSpeed = 5;
+    
+    if (distance > maxSpeed) {
+      const direction = new Vec2D(
+        newPosition.x - player.position.x,
+        newPosition.y - player.position.y
+      );
+      const normalizedDir = new Vec2D(
+        direction.x / distance,
+        direction.y / distance
+      );
+      newPosition = new Vec2D(
+        player.position.x + normalizedDir.x * maxSpeed,
+        player.position.y + normalizedDir.y * maxSpeed
+      );
+    }
+
+    let authorizedPosition = player.position;
+    
+    if (player.worldId) {
+      const world = this.server.getWorld(player.worldId);
+      if (world) {
+        const collisionDetector = new CollisionDetector(world);
+        authorizedPosition = collisionDetector.getValidMovePosition(
+          player.position,
+          newPosition,
+          playerId
+        );
+      }
+    }
+
+    if (!authorizedPosition.eq(player.position)) {
+      player.position = authorizedPosition;
+      this.lastMoveTimes.set(playerId, now);
+      this.moveSequences.set(playerId, sequence);
+
+      if (player.worldId) {
+        const world = this.server.getWorld(player.worldId);
+        if (world) {
+          world.updateEntityPosition(playerId, authorizedPosition);
+        }
+      }
+    }
+
+    return {
+      success: true,
+      authorizedPosition: player.position,
+      sequence: this.moveSequences.get(playerId) || 0
+    };
   }
 
   public getPlayersInWorld(worldId: string): Player[] {

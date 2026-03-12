@@ -3,7 +3,14 @@ import { Server as SocketServer } from 'socket.io';
 import { World } from '../world/world.js';
 import { PlayerManager } from '../managers/player-manager.js';
 import { ClientEvent, ServerEvent } from '@vg2/shared';
-import { Vec2D } from '@vg2/core';
+import { Vec2D, Player } from '@vg2/core';
+import { 
+  C2SMovePayloadSchema, 
+  C2SJoinWorldPayloadSchema,
+  C2SLeaveWorldPayloadSchema,
+  C2SChatPayloadSchema,
+  C2SMovePayload
+} from '@vg2/shared';
 
 export class Server {
   private worlds: Map<string, World> = new Map();
@@ -32,7 +39,8 @@ export class Server {
       cors: {
         origin: '*',
         methods: ['GET', 'POST']
-      }
+      },
+      transports: ['websocket']
     });
 
     this.setupSocketHandlers();
@@ -52,28 +60,32 @@ export class Server {
     this.io.on('connection', (socket) => {
       console.log(`Client connected: ${socket.id}`);
 
-      socket.on(ClientEvent.JOIN_WORLD, async (payload: any) => {
+      socket.on(ClientEvent.JOIN_WORLD, async (data: unknown) => {
         try {
-          const player = this.playerManager.getPlayer(payload.playerId);
+          const payload = C2SJoinWorldPayloadSchema.parse(data);
+          
+          let player = this.playerManager.getPlayer(payload.playerId);
           
           if (!player) {
-            socket.emit(ServerEvent.ERROR, {
-              code: 'PLAYER_NOT_FOUND',
-              message: 'Player not found'
-            });
-            return;
+            player = new Player(
+              payload.playerId,
+              `Player-${payload.playerId.substring(0, 4)}`,
+              payload.spawnPoint ? Vec2D.from(payload.spawnPoint) : new Vec2D(0, 0)
+            );
+            this.playerManager.addPlayer(player);
           }
 
+          this.playerManager.updatePlayerSession(payload.playerId, socket.id);
+
           socket.join(`world:${payload.worldId}`);
-          player.worldId = payload.worldId;
           
+          this.playerManager.updatePlayerWorld(payload.playerId, payload.worldId);
+
           const world = this.getWorld(payload.worldId);
           if (world) {
-            world.addEntity(player);
-            
             const nearbyChunks = world.getChunksInRange(
-              payload.spawnPoint?.x || 0,
-              payload.spawnPoint?.y || 0,
+              player.position.x,
+              player.position.y,
               2
             );
 
@@ -128,10 +140,12 @@ export class Server {
         }
       });
 
-      socket.on(ClientEvent.MOVE, (payload: any) => {
+      socket.on(ClientEvent.MOVE, (data: unknown) => {
         try {
-          const player = this.playerManager.getPlayer(payload.playerId);
+          const payload = C2SMovePayloadSchema.parse(data) as C2SMovePayload;
           
+          const player = this.playerManager.getPlayer(payload.playerId);
+
           if (!player) {
             socket.emit(ServerEvent.ERROR, {
               code: 'PLAYER_NOT_FOUND',
@@ -141,14 +155,28 @@ export class Server {
           }
 
           const newPos = Vec2D.from(payload.position);
-          const success = this.playerManager.movePlayer(payload.playerId, newPos);
-          
-          if (success && player.worldId) {
-            socket.broadcast.to(`world:${player.worldId}`).emit(ServerEvent.PLAYER_MOVED, {
+          const result = this.playerManager.movePlayer(
+            payload.playerId, 
+            newPos, 
+            payload.sequence
+          );
+
+          if (result.success && player.worldId) {
+            const moveEvent = {
               playerId: payload.playerId,
-              position: { x: newPos.x, y: newPos.y },
+              position: { x: result.authorizedPosition.x, y: result.authorizedPosition.y },
               worldId: player.worldId,
-              sequence: payload.sequence
+              sequence: result.sequence
+            };
+
+            socket.broadcast.to(`world:${player.worldId}`).emit(ServerEvent.PLAYER_MOVED, moveEvent);
+            socket.emit(ServerEvent.PLAYER_MOVED, moveEvent);
+          } else {
+            socket.emit(ServerEvent.PLAYER_MOVED, {
+              playerId: payload.playerId,
+              position: { x: result.authorizedPosition.x, y: result.authorizedPosition.y },
+              worldId: player.worldId,
+              sequence: result.sequence
             });
           }
         } catch (error) {
@@ -160,10 +188,12 @@ export class Server {
         }
       });
 
-      socket.on(ClientEvent.CHAT, (payload: any) => {
+      socket.on(ClientEvent.CHAT, (data: unknown) => {
         try {
-          const player = this.playerManager.getPlayer(payload.playerId);
+          const payload = C2SChatPayloadSchema.parse(data);
           
+          const player = this.playerManager.getPlayer(payload.playerId);
+
           if (!player) {
             socket.emit(ServerEvent.ERROR, {
               code: 'PLAYER_NOT_FOUND',
@@ -181,7 +211,10 @@ export class Server {
           };
 
           if (payload.channel === 'whisper' && payload.targetId) {
-            socket.to(payload.targetId).emit(ServerEvent.CHAT_MESSAGE, messagePayload);
+            const targetPlayer = this.playerManager.getPlayer(payload.targetId);
+            if (targetPlayer?.sessionId) {
+              socket.to(targetPlayer.sessionId).emit(ServerEvent.CHAT_MESSAGE, messagePayload);
+            }
           } else if (player.worldId) {
             this.io?.to(`world:${player.worldId}`).emit(ServerEvent.CHAT_MESSAGE, messagePayload);
           }
@@ -194,10 +227,12 @@ export class Server {
         }
       });
 
-      socket.on(ClientEvent.LEAVE_WORLD, (payload: any) => {
+      socket.on(ClientEvent.LEAVE_WORLD, (data: unknown) => {
         try {
-          socket.leave(`world:${payload.worldId}`);
+          const payload = C2SLeaveWorldPayloadSchema.parse(data);
           
+          socket.leave(`world:${payload.worldId}`);
+
           socket.broadcast.to(`world:${payload.worldId}`).emit(ServerEvent.PLAYER_LEFT, {
             playerId: payload.playerId,
             worldId: payload.worldId
@@ -223,6 +258,19 @@ export class Server {
 
       socket.on('disconnect', () => {
         console.log(`Client disconnected: ${socket.id}`);
+        
+        for (const player of this.playerManager.getAllPlayers()) {
+          if (player.sessionId === socket.id) {
+            if (player.worldId) {
+              socket.broadcast.to(`world:${player.worldId}`).emit(ServerEvent.PLAYER_LEFT, {
+                playerId: player.id,
+                worldId: player.worldId
+              });
+            }
+            this.playerManager.removePlayer(player.id);
+            break;
+          }
+        }
       });
     });
   }

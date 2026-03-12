@@ -2,27 +2,17 @@
   "name": "@vg2/shared",
   "version": "1.0.0",
   "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "exports": {
-    ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
-    }
-  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "dev": "tsc --watch",
-    "test": "vitest",
+    "clean": "rm -rf dist",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@vg2/core": "^1.0.0",
     "zod": "^3.22.4"
   },
   "devDependencies": {
-    "socket.io-client": "^4.7.2",
-    "typescript": "^5.4.5",
-    "vitest": "^1.5.0"
+    "@vg2/core": "^1.0.0"
   }
 }
