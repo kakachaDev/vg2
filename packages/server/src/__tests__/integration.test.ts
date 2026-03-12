@@ -32,6 +32,7 @@ describe('Integration Tests', () => {
     }
     
     playerManager.updatePlayerWorld('player1', 'default');
+    await new Promise(resolve => setTimeout(resolve, 20));
     
     const moved = playerManager.movePlayer('player1', new Vec2D(3, 3));
     expect(moved).toBe(true);

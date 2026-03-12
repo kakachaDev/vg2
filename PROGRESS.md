@@ -102,3 +102,7 @@
 - [x] Исправлены ожидания позиции в integration.test.ts и player-manager.test.ts с 10 на 3
 - [x] Добавлена задержка в socket.test.ts перед отправкой движения
 - [x] Исправлен порядок подписки на PLAYER_MOVED в тестах out-of-order и rate limiting
+
+- [x] Исправлен синтаксис в socket.test.ts
+- [x] Добавлены задержки в тесты для избежания rate limit (player-manager, integration)
+- [x] Улучшены тесты out-of-order и rate limiting

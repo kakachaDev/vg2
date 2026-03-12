@@ -62,10 +62,11 @@ describe('Socket.IO Server', () => {
   it('should handle player movement', async () => {
     const player = new Player('test-player', 'TestPlayer', new Vec2D(0, 0));
     server.getPlayerManager().addPlayer(player);
-    
+
     const world = server.getWorld('default');
     if (world) {
       world.addEntity(player);
+      player.worldId = 'default';
     }
 
     await new Promise<void>((resolve) => {
@@ -78,9 +79,7 @@ describe('Socket.IO Server', () => {
         });
 
         clientSocket.on(ServerEvent.WORLD_STATE, () => {
-          setTimeout(() => {
           clientSocket.emit(ClientEvent.MOVE, {
-          }, 50);
             playerId: 'test-player',
             position: { x: 3, y: 3 },
             sequence: 1
@@ -88,8 +87,8 @@ describe('Socket.IO Server', () => {
 
           setTimeout(() => {
             const updatedPlayer = server.getPlayerManager().getPlayer('test-player');
-            expect(updatedPlayer?.position.x).toBe(10);
-            expect(updatedPlayer?.position.y).toBe(10);
+            expect(updatedPlayer?.position.x).toBe(3);
+            expect(updatedPlayer?.position.y).toBe(3);
             resolve();
           }, 100);
         });
@@ -159,7 +158,7 @@ describe('Socket.IO Server', () => {
       clientSocket.on('connect', () => {
         clientSocket.emit(ClientEvent.MOVE, {
           playerId: 'non-existent-player',
-          position: { x: 3, y: 3 },
+          position: { x: 10, y: 10 },
           sequence: 1
         });
       });

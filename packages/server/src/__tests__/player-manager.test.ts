@@ -32,7 +32,7 @@ describe('PlayerManager', () => {
     expect(playerManager.getPlayer('1')).toBeUndefined();
   });
 
-  it('should move player', () => {
+  it('should move player', async () => {
     const player = new Player('1', 'TestPlayer', new Vec2D(0, 0));
     playerManager.addPlayer(player);
     
@@ -43,8 +43,12 @@ describe('PlayerManager', () => {
     }
 
     const newPosition = new Vec2D(3, 3);
+    await new Promise(resolve => setTimeout(resolve, 20));
+
+    setTimeout(() => {
     const moved = playerManager.movePlayer('1', newPosition);
 
+    }, 20);
     expect(moved).toBe(true);
     expect(player.position.x).toBe(3);
     expect(player.position.y).toBe(3);
