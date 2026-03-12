@@ -11,10 +11,10 @@ describe('Server', () => {
 
   it('should start and stop', async () => {
     expect(server.isActive()).toBe(false);
-    
+
     await server.start();
     expect(server.isActive()).toBe(true);
-    
+
     await server.stop();
     expect(server.isActive()).toBe(false);
   });
@@ -29,7 +29,7 @@ describe('Server', () => {
   it('should add and get worlds', () => {
     const newWorld = new World('test', 'Test World');
     server.addWorld(newWorld);
-    
+
     expect(server.getWorld('test')).toBe(newWorld);
     expect(server.getAllWorlds().length).toBe(2);
   });

@@ -1,7 +1,7 @@
 export class Vec2D {
   constructor(
     public x: number,
-    public y: number
+    public y: number,
   ) {}
 
   add(other: Vec2D): Vec2D {

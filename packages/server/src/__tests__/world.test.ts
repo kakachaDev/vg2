@@ -19,9 +19,9 @@ describe('World', () => {
   it('should add and get entity', () => {
     const entity = {
       id: '1',
-      position: new Vec2D(10, 10)
+      position: new Vec2D(10, 10),
     };
-    
+
     world.addEntity(entity);
     expect(world.getEntity('1')).toBe(entity);
     expect(world.getAllEntities()).toContain(entity);
@@ -30,9 +30,9 @@ describe('World', () => {
   it('should remove entity', () => {
     const entity = {
       id: '1',
-      position: new Vec2D(10, 10)
+      position: new Vec2D(10, 10),
     };
-    
+
     world.addEntity(entity);
     expect(world.removeEntity('1')).toBe(true);
     expect(world.getEntity('1')).toBeUndefined();
@@ -43,7 +43,7 @@ describe('World', () => {
     expect(chunk).toBeInstanceOf(Chunk);
     expect(chunk.x).toBe(0);
     expect(chunk.y).toBe(0);
-    
+
     const sameChunk = world.getChunk(0, 0);
     expect(sameChunk).toBe(chunk);
   });

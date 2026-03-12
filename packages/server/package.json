@@ -9,7 +9,13 @@
     "dev": "tsc --watch",
     "test": "vitest"
   },
+  "dependencies": {
+    "@vg2/core": "^1.0.0",
+    "@vg2/shared": "^1.0.0",
+    "@vg2/types": "^1.0.0"
+  },
   "devDependencies": {
+    "@types/node": "^20.0.0",
     "typescript": "^5.4.5",
     "vitest": "^1.5.0"
   }

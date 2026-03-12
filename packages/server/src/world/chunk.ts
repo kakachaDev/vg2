@@ -11,7 +11,7 @@ export class Chunk {
 
   constructor(
     public readonly x: number,
-    public readonly y: number
+    public readonly y: number,
   ) {}
 
   private tiles: Map<string, Tile> = new Map();

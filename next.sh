@@ -21,6 +21,10 @@ echo "=== PROGRESS.md ==="
 cat PROGRESS.md 2>/dev/null || echo "PROGRESS.md не найден"
 
 echo ""
+echo "=== VISION.md ==="
+cat VISION.md 2>/dev/null || echo "VISION.md не найден"
+
+echo ""
 echo "=== ПОСЛЕДНИЙ КОММИТ ==="
 git log -1 --pretty=format:"%h - %s" 2>/dev/null || echo "git не инициализирован"
 

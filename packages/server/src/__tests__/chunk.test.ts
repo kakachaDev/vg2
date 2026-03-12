@@ -13,7 +13,7 @@ describe('Chunk', () => {
   it('should set and get tiles', () => {
     const chunk = new Chunk(0, 0);
     const tile = { type: 'grass', solid: false };
-    
+
     chunk.setTile(5, 5, tile);
     expect(chunk.getTile(5, 5)).toBe(tile);
   });
@@ -21,7 +21,7 @@ describe('Chunk', () => {
   it('should throw error for out of bounds tiles', () => {
     const chunk = new Chunk(0, 0);
     const tile = { type: 'grass', solid: false };
-    
+
     expect(() => chunk.setTile(-1, 5, tile)).toThrow();
     expect(() => chunk.setTile(16, 5, tile)).toThrow();
   });
@@ -30,9 +30,9 @@ describe('Chunk', () => {
     const chunk = new Chunk(0, 0);
     const entity = {
       id: '1',
-      position: new Vec2D(10, 10)
+      position: new Vec2D(10, 10),
     };
-    
+
     chunk.addEntity(entity);
     expect(chunk.getEntity('1')).toBe(entity);
     expect(chunk.getAllEntities()).toContain(entity);
@@ -42,9 +42,9 @@ describe('Chunk', () => {
     const chunk = new Chunk(0, 0);
     const entity = {
       id: '1',
-      position: new Vec2D(10, 10)
+      position: new Vec2D(10, 10),
     };
-    
+
     chunk.addEntity(entity);
     expect(chunk.removeEntity('1')).toBe(true);
     expect(chunk.getEntity('1')).toBeUndefined();
