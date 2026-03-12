@@ -83,9 +83,15 @@ export class Server {
 
           const world = this.getWorld(payload.worldId);
           if (world) {
-            const nearbyChunks = world.getChunksInRange(player.position.x, player.position.y, 2);
+            // Подписка на чанки при входе
+            const { added } = world.updatePlayerSubscriptions(
+              payload.playerId,
+              player.position.x,
+              player.position.y,
+              2,
+            );
 
-            for (const chunk of nearbyChunks) {
+            for (const chunk of added) {
               socket.emit(ServerEvent.CHUNK_UPDATE, {
                 chunkX: chunk.x,
                 chunkY: chunk.y,
@@ -105,7 +111,10 @@ export class Server {
               worldId: world.id,
               worldName: world.name,
               players: world.getPlayers().length,
-              chunks: nearbyChunks.map((c) => ({ x: c.x, y: c.y })),
+              chunks: Array.from(world.getPlayerSubscriptions(payload.playerId)).map((key) => {
+                const [x, y] = key.split(',').map(Number);
+                return { x, y };
+              }),
             });
           }
 
@@ -149,35 +158,34 @@ export class Server {
             return;
           }
 
-          const oldChunkX = Math.floor(player.position.x / 16);
-          const oldChunkY = Math.floor(player.position.y / 16);
-
           const newPos = Vec2D.from(payload.position);
           const result = this.playerManager.movePlayer(payload.playerId, newPos, payload.sequence);
 
           if (player.worldId) {
             const world = this.getWorld(player.worldId);
             if (world) {
-              const newChunkX = Math.floor(result.authorizedPosition.x / 16);
-              const newChunkY = Math.floor(result.authorizedPosition.y / 16);
+              // Обновляем подписки и отправляем новые чанки
+              const { added } = world.updatePlayerSubscriptions(
+                payload.playerId,
+                result.authorizedPosition.x,
+                result.authorizedPosition.y,
+                2,
+              );
 
-              if (oldChunkX !== newChunkX || oldChunkY !== newChunkY) {
-                const nearbyChunks = world.getChunksInRange(result.authorizedPosition.x, result.authorizedPosition.y, 2);
-                for (const chunk of nearbyChunks) {
-                  socket.emit(ServerEvent.CHUNK_UPDATE, {
-                    chunkX: chunk.x,
-                    chunkY: chunk.y,
-                    tiles: Array.from(chunk.getTiles().entries()).map(([key, tile]) => {
-                      const [x, y] = key.split(',').map(Number);
-                      return { x, y, type: tile.type, solid: tile.solid };
-                    }),
-                    entities: chunk.getAllEntities().map((e) => ({
-                      id: e.id,
-                      type: e.type,
-                      position: { x: e.position.x, y: e.position.y },
-                    })),
-                  });
-                }
+              for (const chunk of added) {
+                socket.emit(ServerEvent.CHUNK_UPDATE, {
+                  chunkX: chunk.x,
+                  chunkY: chunk.y,
+                  tiles: Array.from(chunk.getTiles().entries()).map(([key, tile]) => {
+                    const [x, y] = key.split(',').map(Number);
+                    return { x, y, type: tile.type, solid: tile.solid };
+                  }),
+                  entities: chunk.getAllEntities().map((e) => ({
+                    id: e.id,
+                    type: e.type,
+                    position: { x: e.position.x, y: e.position.y },
+                  })),
+                });
               }
             }
           }

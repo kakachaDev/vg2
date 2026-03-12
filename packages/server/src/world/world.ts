@@ -8,6 +8,7 @@ export class World {
   private chunks: Map<string, Chunk> = new Map();
   private playerChunks: Map<string, Set<string>> = new Map();
   private entityChunks: Map<string, string> = new Map();
+  private playerSubscriptions: Map<string, Set<string>> = new Map();
 
   constructor(id: string, name: string) {
     this.id = id;
@@ -35,6 +36,7 @@ export class World {
       }
       this.playerChunks.delete(entityId);
       this.entityChunks.delete(entityId);
+      this.playerSubscriptions.delete(entityId);
     }
     return this.entities.delete(entityId);
   }
@@ -115,5 +117,47 @@ export class World {
 
   public getEntityChunks(entityId: string): string[] {
     return Array.from(this.playerChunks.get(entityId) || []);
+  }
+
+  // Система подписки на чанки
+  public updatePlayerSubscriptions(
+    playerId: string,
+    centerX: number,
+    centerY: number,
+    radius: number,
+  ): { added: Chunk[]; removed: Chunk[] } {
+    const chunkX = Math.floor(centerX / Chunk.SIZE);
+    const chunkY = Math.floor(centerY / Chunk.SIZE);
+    const newChunks = new Set<string>();
+    for (let dx = -radius; dx <= radius; dx++) {
+      for (let dy = -radius; dy <= radius; dy++) {
+        newChunks.add(`${chunkX + dx},${chunkY + dy}`);
+      }
+    }
+
+    const oldSubs = this.playerSubscriptions.get(playerId) || new Set<string>();
+    const added: Chunk[] = [];
+    const removed: Chunk[] = [];
+
+    for (const key of newChunks) {
+      if (!oldSubs.has(key)) {
+        const [x, y] = key.split(',').map(Number);
+        added.push(this.getChunk(x, y));
+      }
+    }
+
+    for (const key of oldSubs) {
+      if (!newChunks.has(key)) {
+        const [x, y] = key.split(',').map(Number);
+        removed.push(this.getChunk(x, y));
+      }
+    }
+
+    this.playerSubscriptions.set(playerId, newChunks);
+    return { added, removed };
+  }
+
+  public getPlayerSubscriptions(playerId: string): Set<string> {
+    return this.playerSubscriptions.get(playerId) || new Set();
   }
 }
