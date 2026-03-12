@@ -159,7 +159,7 @@ describe('Socket.IO Server', () => {
 
       clientSocket.on(ServerEvent.ERROR, (data: any) => {
         try {
-          expect(data.code).toBe('PLAYER_NOT_FOUND');
+          expect(data.code).toBe(.INVALID_MOVE.);
           resolve();
         } catch (e) {
           reject(e);

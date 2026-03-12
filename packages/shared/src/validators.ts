@@ -6,32 +6,32 @@ export const Vec2DSchema = z.object({
 });
 
 export const movePayloadSchema = z.object({
-  playerId: z.string().uuid(),
+  playerId: z.string(),
   position: Vec2DSchema,
   sequence: z.number().int().positive()
 });
 
 export const chatPayloadSchema = z.object({
-  playerId: z.string().uuid(),
+  playerId: z.string(),
   message: z.string().min(1).max(256),
   channel: z.enum(['global', 'world', 'whisper']),
   targetId: z.string().optional()
 });
 
 export const joinWorldPayloadSchema = z.object({
-  playerId: z.string().uuid(),
+  playerId: z.string(),
   worldId: z.string(),
   spawnPoint: Vec2DSchema.optional()
 });
 
 export const leaveWorldPayloadSchema = z.object({
-  playerId: z.string().uuid(),
+  playerId: z.string(),
   worldId: z.string()
 });
 
 export const interactPayloadSchema = z.object({
-  playerId: z.string().uuid(),
-  targetId: z.string().uuid(),
+  playerId: z.string(),
+  targetId: z.string(),
   interactionType: z.string(),
   position: Vec2DSchema
 });
