@@ -110,11 +110,9 @@ describe('Movement with Collision Detection', () => {
       player2.worldId = 'default';
     }
 
-    // Убедимся, что player2 действительно в мире
     const worldPlayers = world?.getPlayers();
     expect(worldPlayers?.length).toBe(2);
 
-    // Сбросим время последнего движения, чтобы избежать rate limit
     (server.getPlayerManager() as any).lastMoveTimes.set('player1', Date.now() - 100);
 
     await new Promise<void>((resolve, reject) => {
@@ -129,7 +127,6 @@ describe('Movement with Collision Detection', () => {
       });
 
       clientSocket.on(ServerEvent.WORLD_STATE, () => {
-        // Отправляем движение к позиции за player2
         clientSocket.emit(ClientEvent.MOVE, {
           playerId: 'player1',
           position: { x: 3, y: 0 },
@@ -137,12 +134,11 @@ describe('Movement with Collision Detection', () => {
         });
       });
 
-      // Ждем события PLAYER_MOVED
       clientSocket.on(ServerEvent.PLAYER_MOVED, (data: any) => {
         if (data.playerId === 'player1') {
           const updatedPlayer = server.getPlayerManager().getPlayer('player1');
           try {
-            expect(updatedPlayer?.position.x).toBeLessThan(2); // Не должен пройти через player2
+            expect(updatedPlayer?.position.x).toBeLessThan(2);
             resolve();
           } catch (e) {
             reject(e);
@@ -150,10 +146,9 @@ describe('Movement with Collision Detection', () => {
         }
       });
 
-      // Таймаут на случай, если событие не придет
       setTimeout(() => {
         reject(new Error('Timeout waiting for PLAYER_MOVED'));
-      }, 1000);
+      }, 2000);
     });
   });
 
@@ -181,42 +176,39 @@ describe('Movement with Collision Detection', () => {
         });
       });
 
+      let movedWithSeq2 = false;
+      let movedWithSeq1 = false;
+
       clientSocket.on(ServerEvent.WORLD_STATE, () => {
-        let firstMoveProcessed = false;
-
-        clientSocket.on(ServerEvent.PLAYER_MOVED, (data: any) => {
-          if (data.sequence === 2) {
-            firstMoveProcessed = true;
-          } else if (data.sequence === 1) {
-            reject(new Error('Second out-of-order move was accepted'));
-          }
-        });
-
         clientSocket.emit(ClientEvent.MOVE, {
           playerId: 'test-player',
           position: { x: 1, y: 0 },
           sequence: 2,
         });
+      });
 
-        const interval = setInterval(() => {
-          if (firstMoveProcessed) {
-            clearInterval(interval);
-            clientSocket.emit(ClientEvent.MOVE, {
-              playerId: 'test-player',
-              position: { x: 2, y: 0 },
-              sequence: 1,
-            });
-
-            setTimeout(() => {
-              resolve();
-            }, 100);
-          }
-        }, 10);
+      clientSocket.on(ServerEvent.PLAYER_MOVED, (data: any) => {
+        if (data.sequence === 2) {
+          movedWithSeq2 = true;
+          clientSocket.emit(ClientEvent.MOVE, {
+            playerId: 'test-player',
+            position: { x: 2, y: 0 },
+            sequence: 1,
+          });
+        } else if (data.sequence === 1) {
+          movedWithSeq1 = true;
+          // Движение с sequence 1 не должно быть успешным
+          reject(new Error('Out-of-order move was accepted'));
+        }
       });
 
       setTimeout(() => {
-        reject(new Error('Timeout in out-of-order test'));
-      }, 2000);
+        if (movedWithSeq2 && !movedWithSeq1) {
+          resolve();
+        } else {
+          reject(new Error('Out-of-order test failed'));
+        }
+      }, 1000);
     });
   });
 

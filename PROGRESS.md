@@ -122,3 +122,7 @@
 - [x] Тест "should prevent moving through other players" теперь проходит
 - [x] Исправлен CollisionDetector.getValidMovePosition для проверки всего пути, а не только конечной точки
 - [x] Тест "should prevent moving through other players" теперь проходит
+
+- [x] Реализована отправка чанков при перемещении игрока (Server.ts)
+- [x] Улучшена стабильность тестов движения (movement-collision.test.ts)
+- [x] Добавлена проверка получения чанков в integration.test.ts

@@ -64,7 +64,7 @@ describe('Integration Tests', () => {
     expect(playersInWorld.length).toBe(2);
   });
 
-  it('should handle chunk transitions', async () => {
+  it('should handle chunk transitions and send chunk updates', async () => {
     const playerManager = server.getPlayerManager();
     const player = new Player('player1', 'TestPlayer', new Vec2D(0, 0));
     playerManager.addPlayer(player);
@@ -81,9 +81,54 @@ describe('Integration Tests', () => {
     expect(chunk1).toBeDefined();
     expect(chunk2).toBeDefined();
 
-    playerManager.movePlayer('player1', new Vec2D(20, 0));
+    // Подключаем клиент для получения чанков
+    clientSocket = Client(`http://localhost:${PORT}`, {
+      autoConnect: false,
+      transports: ['websocket'],
+    });
 
-    const playerChunks = world?.getEntityChunks('player1');
-    expect(playerChunks?.length).toBeGreaterThan(0);
+    await new Promise<void>((resolve, reject) => {
+      let chunkUpdateReceived = false;
+      let moveProcessed = false;
+
+      clientSocket.connect();
+
+      clientSocket.on('connect', () => {
+        clientSocket.emit(ClientEvent.JOIN_WORLD, {
+          playerId: 'player1',
+          worldId: 'default',
+          spawnPoint: { x: 0, y: 0 },
+        });
+      });
+
+      clientSocket.on(ServerEvent.WORLD_STATE, () => {
+        // Двигаем игрока в другой чанк
+        clientSocket.emit(ClientEvent.MOVE, {
+          playerId: 'player1',
+          position: { x: 20, y: 0 },
+          sequence: 1,
+        });
+      });
+
+      clientSocket.on(ServerEvent.CHUNK_UPDATE, (data: any) => {
+        if (data.chunkX === 1 && data.chunkY === 0) {
+          chunkUpdateReceived = true;
+        }
+      });
+
+      clientSocket.on(ServerEvent.PLAYER_MOVED, (data: any) => {
+        if (data.playerId === 'player1') {
+          moveProcessed = true;
+        }
+      });
+
+      setTimeout(() => {
+        if (moveProcessed && chunkUpdateReceived) {
+          resolve();
+        } else {
+          reject(new Error('Chunk update not received after movement'));
+        }
+      }, 500);
+    });
   });
 });
