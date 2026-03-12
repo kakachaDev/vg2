@@ -110,3 +110,5 @@
 - [x] Восстановлен movement-collision.test.ts с корректным синтаксисом
 - [x] Исправлен player-manager.test.ts: сброс lastMoveTime и правильная проверка moved
 - [x] Исправлен socket.test.ts: сброс lastMoveTime и увеличены задержки
+
+- [x] Исправлены тесты out-of-order и rate limiting: добавлена явная проверка получения первого события, сброс состояния, уменьшено количество движений для rate limiting

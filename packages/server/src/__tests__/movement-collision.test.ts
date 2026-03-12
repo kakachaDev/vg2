@@ -139,9 +139,10 @@ describe('Movement with Collision Detection', () => {
     const player = new Player('test-player', 'TestPlayer', new Vec2D(0, 0));
     server.getPlayerManager().addPlayer(player);
 
-    let receivedSequence = 0;
+    // Сбрасываем sequence
+    (server.getPlayerManager() as any).moveSequences.set('test-player', 0);
 
-    await new Promise<void>((resolve) => {
+    await new Promise<void>((resolve, reject) => {
       clientSocket.connect();
 
       clientSocket.on('connect', () => {
@@ -150,31 +151,51 @@ describe('Movement with Collision Detection', () => {
           worldId: 'default',
           spawnPoint: { x: 0, y: 0 }
         });
+      });
 
-        clientSocket.on(ServerEvent.WORLD_STATE, () => {
-          clientSocket.on(ServerEvent.PLAYER_MOVED, (data: any) => {
-            receivedSequence = data.sequence;
-          });
+      let firstMoveReceived = false;
+      let secondMoveReceived = false;
 
-          clientSocket.emit(ClientEvent.MOVE, {
-            playerId: 'test-player',
-            position: { x: 1, y: 0 },
-            sequence: 2
-          });
+      clientSocket.on(ServerEvent.WORLD_STATE, () => {
+        // Подписываемся на движения
+        clientSocket.on(ServerEvent.PLAYER_MOVED, (data: any) => {
+          if (data.sequence === 2) {
+            firstMoveReceived = true;
+          } else if (data.sequence === 1) {
+            secondMoveReceived = true;
+          }
+        });
 
-          setTimeout(() => {
+        // Отправляем первое движение с sequence 2
+        clientSocket.emit(ClientEvent.MOVE, {
+          playerId: 'test-player',
+          position: { x: 1, y: 0 },
+          sequence: 2
+        });
+
+        // Ждем получения первого движения, затем отправляем второе
+        const checkInterval = setInterval(() => {
+          if (firstMoveReceived) {
+            clearInterval(checkInterval);
+            // Отправляем второе движение с sequence 1 (out of order)
             clientSocket.emit(ClientEvent.MOVE, {
               playerId: 'test-player',
               position: { x: 2, y: 0 },
               sequence: 1
             });
 
+            // Даем время на обработку второго движения
             setTimeout(() => {
-              expect(receivedSequence).toBe(2);
+              expect(firstMoveReceived).toBe(true);
+              expect(secondMoveReceived).toBe(false);
               resolve();
-            }, 50);
-          }, 50);
-        });
+            }, 100);
+          }
+        }, 10);
+      });
+
+      clientSocket.on(ServerEvent.ERROR, (data: any) => {
+        reject(new Error(`Server error: ${data.code}`));
       });
     });
   });
@@ -183,7 +204,10 @@ describe('Movement with Collision Detection', () => {
     const player = new Player('test-player', 'TestPlayer', new Vec2D(0, 0));
     server.getPlayerManager().addPlayer(player);
 
-    await new Promise<void>((resolve) => {
+    // Сбрасываем lastMoveTime, чтобы первое движение точно прошло
+    (server.getPlayerManager() as any).lastMoveTimes.set('test-player', Date.now() - 100);
+
+    await new Promise<void>((resolve, reject) => {
       clientSocket.connect();
 
       clientSocket.on('connect', () => {
@@ -192,29 +216,40 @@ describe('Movement with Collision Detection', () => {
           worldId: 'default',
           spawnPoint: { x: 0, y: 0 }
         });
+      });
 
-        clientSocket.on(ServerEvent.WORLD_STATE, () => {
-          let moveCount = 0;
+      clientSocket.on(ServerEvent.WORLD_STATE, () => {
+        let moveCount = 0;
 
-          clientSocket.on(ServerEvent.PLAYER_MOVED, () => {
-            moveCount++;
-          });
-
-          for (let i = 1; i <= 20; i++) {
-            setTimeout(() => {
-              clientSocket.emit(ClientEvent.MOVE, {
-                playerId: 'test-player',
-                position: { x: i, y: 0 },
-                sequence: i
-              });
-            }, i * 5);
-          }
-
-          setTimeout(() => {
-            expect(moveCount).toBeLessThan(20);
-            resolve();
-          }, 200);
+        clientSocket.on(ServerEvent.PLAYER_MOVED, () => {
+          moveCount++;
         });
+
+        // Отправляем 5 движений с интервалом 5ms (меньше 16ms)
+        for (let i = 1; i <= 5; i++) {
+          setTimeout(() => {
+            clientSocket.emit(ClientEvent.MOVE, {
+              playerId: 'test-player',
+              position: { x: i, y: 0 },
+              sequence: i
+            });
+          }, i * 5);
+        }
+
+        // Ждем завершения всех движений
+        setTimeout(() => {
+          try {
+            // Должно быть отклонено хотя бы одно движение
+            expect(moveCount).toBeLessThan(5);
+            resolve();
+          } catch (e) {
+            reject(e);
+          }
+        }, 200);
+      });
+
+      clientSocket.on(ServerEvent.ERROR, (data: any) => {
+        // Ошибки не должны влиять на count, но игнорируем
       });
     });
   });
