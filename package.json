@@ -2,6 +2,7 @@
   "name": "vg2",
   "version": "1.0.0",
   "description": "Voxel Game 2 - Server",
+  "type": "module",
   "workspaces": [
     "packages/*"
   ],

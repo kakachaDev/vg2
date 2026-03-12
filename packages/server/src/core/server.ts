@@ -1,5 +1,5 @@
-import { World } from '../world/world';
-import { PlayerManager } from '../managers/player-manager';
+import { World } from '../world/world.js';
+import { PlayerManager } from '../managers/player-manager.js';
 
 export class Server {
   private worlds: Map<string, World> = new Map();

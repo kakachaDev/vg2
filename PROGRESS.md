@@ -38,3 +38,8 @@
   - [x] Убран type: module из package.json
   - [x] Исправлены tsconfig.json во всех пакетах
   - [x] Сборка теперь работает без ошибок
+- [x] Исправлены ES Modules импорты
+  - [x] Добавлены .js расширения во все относительные импорты
+  - [x] Настроен module: NodeNext и moduleResolution: NodeNext
+  - [x] Возвращен type: module во все package.json
+  - [x] Сборка работает с ES Modules правильно

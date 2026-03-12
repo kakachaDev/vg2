@@ -1,4 +1,4 @@
-export { Server } from './core/server';
-export { World } from './world/world';
-export { Chunk } from './world/chunk';
-export { PlayerManager } from './managers/player-manager';
+export { Server } from './core/server.js';
+export { World } from './world/world.js';
+export { Chunk } from './world/chunk.js';
+export { PlayerManager } from './managers/player-manager.js';

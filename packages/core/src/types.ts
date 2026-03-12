@@ -1,10 +1,10 @@
-import { Vec2D } from './vec2d';
+import { Vec2D } from './vec2d.js';
 
 export enum Direction {
   North = 'north',
   South = 'south',
   East = 'east',
-  West = 'west',
+  West = 'west'
 }
 
 export interface Entity {

@@ -1,5 +1,5 @@
 import { Player, Vec2D } from '@vg2/core';
-import { Server } from '../core/server';
+import { Server } from '../core/server.js';
 
 export class PlayerManager {
   private players: Map<string, Player> = new Map();
@@ -11,7 +11,7 @@ export class PlayerManager {
 
   public addPlayer(player: Player): void {
     this.players.set(player.id, player);
-
+    
     const world = this.server.getWorld('default');
     if (world) {
       world.addEntity(player);
@@ -50,10 +50,10 @@ export class PlayerManager {
 
     const oldPosition = player.position;
     player.position = newPosition;
-
+    
     world.removeEntity(playerId);
     world.addEntity(player);
-
+    
     return true;
   }
 

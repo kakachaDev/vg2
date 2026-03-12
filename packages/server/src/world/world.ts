@@ -1,5 +1,5 @@
 import { Entity, Player } from '@vg2/core';
-import { Chunk } from './chunk';
+import { Chunk } from './chunk.js';
 
 export class World {
   public readonly id: string;
@@ -36,7 +36,7 @@ export class World {
 
   public getPlayers(): Player[] {
     return Array.from(this.entities.values()).filter(
-      (entity): entity is Player => 'sessionId' in entity,
+      (entity): entity is Player => 'sessionId' in entity
     );
   }
 
@@ -66,7 +66,7 @@ export class World {
   private updateEntityChunks(entity: Entity): void {
     const chunkX = Math.floor(entity.position.x / Chunk.SIZE);
     const chunkY = Math.floor(entity.position.y / Chunk.SIZE);
-
+    
     let chunks = this.playerChunks.get(entity.id);
     if (!chunks) {
       chunks = new Set();
