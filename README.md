@@ -1,7 +1,7 @@
 # VG2 - Voxel Game 2 Server
 
-[![CI](https://github.com/yourusername/vg2/actions/workflows/ci.yml/badge.svg)](https://github.com/yourusername/vg2/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/yourusername/vg2/branch/main/graph/badge.svg)](https://codecov.io/gh/yourusername/vg2)
+[![CI](https://github.com/kakachaDev/vg2/actions/workflows/ci.yml/badge.svg)](https://github.com/kakachaDev/vg2/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/kakachaDev/vg2/branch/main/graph/badge.svg)](https://codecov.io/gh/kakachaDev/vg2)
 [![Node Version](https://img.shields.io/node/v/vg2)](https://nodejs.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
