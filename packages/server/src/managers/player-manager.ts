@@ -84,40 +84,43 @@ export class PlayerManager {
       return false;
     }
 
-    const distance = player.position.distance(newPosition);
+    const oldPosition = player.position.clone();
+    const distance = oldPosition.distance(newPosition);
     const maxSpeed = 5;
 
     let finalPosition = newPosition;
     if (distance > maxSpeed) {
       const direction = new Vec2D(
-        newPosition.x - player.position.x,
-        newPosition.y - player.position.y
+        newPosition.x - oldPosition.x,
+        newPosition.y - oldPosition.y
       );
       const normalizedDir = new Vec2D(
         direction.x / distance,
         direction.y / distance
       );
       finalPosition = new Vec2D(
-        player.position.x + normalizedDir.x * maxSpeed,
-        player.position.y + normalizedDir.y * maxSpeed
+        oldPosition.x + normalizedDir.x * maxSpeed,
+        oldPosition.y + normalizedDir.y * maxSpeed
       );
     }
 
-    let authorizedPosition = player.position;
+    let authorizedPosition = oldPosition;
 
     if (player.worldId) {
       const world = this.server.getWorld(player.worldId);
       if (world) {
         const collisionDetector = new CollisionDetector(world);
         authorizedPosition = collisionDetector.getValidMovePosition(
-          player.position,
+          oldPosition,
           finalPosition,
           playerId
         );
       }
     }
 
-    if (!authorizedPosition.eq(player.position)) {
+    const moved = !authorizedPosition.eq(oldPosition);
+
+    if (moved) {
       player.position = authorizedPosition;
       this.lastMoveTimes.set(playerId, now);
       if (sequence !== undefined) {
@@ -134,13 +137,13 @@ export class PlayerManager {
 
     if (sequence !== undefined) {
       return {
-        success: !authorizedPosition.eq(player.position),
+        success: moved,
         authorizedPosition: player.position,
         sequence: this.moveSequences.get(playerId) || 0
       };
     }
     
-    return !player.position.eq(player.position);
+    return moved;
   }
 
   public getPlayersInWorld(worldId: string): Player[] {
