@@ -5,10 +5,10 @@ import { PlayerManager } from '../managers/player-manager.js';
 import { ClientEvent, ServerEvent } from '@vg2/shared';
 import { Vec2D, Player } from '@vg2/core';
 import {
-  C2SMovePayloadSchema,
-  C2SJoinWorldPayloadSchema,
-  C2SLeaveWorldPayloadSchema,
-  C2SChatPayloadSchema
+  movePayloadSchema,
+  joinWorldPayloadSchema,
+  leaveWorldPayloadSchema,
+  chatPayloadSchema
 } from '@vg2/shared';
 import type { C2SMovePayload } from '@vg2/shared';
 
@@ -62,7 +62,7 @@ export class Server {
 
       socket.on(ClientEvent.JOIN_WORLD, async (data: unknown) => {
         try {
-          const payload = C2SJoinWorldPayloadSchema.parse(data);
+          const payload = joinWorldPayloadSchema.parse(data);
 
           let player = this.playerManager.getPlayer(payload.playerId);
 
@@ -142,7 +142,7 @@ export class Server {
 
       socket.on(ClientEvent.MOVE, (data: unknown) => {
         try {
-          const payload = C2SMovePayloadSchema.parse(data) as C2SMovePayload;
+          const payload = movePayloadSchema.parse(data) as C2SMovePayload;
 
           const player = this.playerManager.getPlayer(payload.playerId);
 
@@ -190,7 +190,7 @@ export class Server {
 
       socket.on(ClientEvent.CHAT, (data: unknown) => {
         try {
-          const payload = C2SChatPayloadSchema.parse(data);
+          const payload = chatPayloadSchema.parse(data);
 
           const player = this.playerManager.getPlayer(payload.playerId);
 
@@ -229,7 +229,7 @@ export class Server {
 
       socket.on(ClientEvent.LEAVE_WORLD, (data: unknown) => {
         try {
-          const payload = C2SLeaveWorldPayloadSchema.parse(data);
+          const payload = leaveWorldPayloadSchema.parse(data);
 
           socket.leave(`world:${payload.worldId}`);
 
