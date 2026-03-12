@@ -120,3 +120,5 @@
 - [x] Исправлен тест "should prevent moving through other players": теперь ожидается событие PLAYER_MOVED и проверка позиции после обработки
 - [x] Исправлена ошибка добавления сущностей в чанки (World.addEntity теперь добавляет в чанк)
 - [x] Тест "should prevent moving through other players" теперь проходит
+- [x] Исправлен CollisionDetector.getValidMovePosition для проверки всего пути, а не только конечной точки
+- [x] Тест "should prevent moving through other players" теперь проходит

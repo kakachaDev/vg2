@@ -39,10 +39,6 @@ export class CollisionDetector {
   }
 
   public getValidMovePosition(from: Vec2D, to: Vec2D, entityId: string): Vec2D {
-    if (this.canMove(from, to, entityId)) {
-      return to;
-    }
-
     const direction = new Vec2D(to.x - from.x, to.y - from.y);
     const distance = from.distance(to);
 
