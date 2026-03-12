@@ -1,1 +1,2 @@
-export const VERSION = '1.0.0';
+export * from './vec2d';
+export * from './types';

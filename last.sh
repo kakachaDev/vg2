@@ -1,356 +1,116 @@
 #!/bin/bash
 
-# 1. Создание корневой структуры
-cat > package.json << 'EOF'
-{
-  "name": "vg2",
-  "version": "1.0.0",
-  "description": "Voxel Game 2 - Server",
-  "type": "module",
-  "workspaces": [
-    "packages/*"
-  ],
-  "scripts": {
-    "test": "vitest",
-    "test:coverage": "vitest --coverage",
-    "build": "npm run build --workspaces",
-    "dev": "npm run dev --workspaces",
-    "lint": "prettier --check .",
-    "format": "prettier --write ."
-  },
-  "devDependencies": {
-    "@vitest/coverage-v8": "^1.5.0",
-    "prettier": "^3.2.5",
-    "typescript": "^5.4.5",
-    "vitest": "^1.5.0"
-  },
-  "engines": {
-    "node": ">=20.0.0"
+# 1. Создание файлов core пакета
+cat > packages/core/src/types.ts << 'EOF'
+export enum Direction {
+  North = 'north',
+  South = 'south',
+  East = 'east',
+  West = 'west'
+}
+
+export interface Entity {
+  id: string;
+  position: Vec2D;
+}
+
+export interface Player extends Entity {
+  name: string;
+  sessionId: string;
+}
+
+export interface World {
+  id: string;
+  name: string;
+  entities: Map<string, Entity>;
+}
+EOF
+
+cat > packages/core/src/vec2d.ts << 'EOF'
+export class Vec2D {
+  constructor(
+    public x: number,
+    public y: number
+  ) {}
+
+  add(other: Vec2D): Vec2D {
+    return new Vec2D(this.x + other.x, this.y + other.y);
+  }
+
+  sub(other: Vec2D): Vec2D {
+    return new Vec2D(this.x - other.x, this.y - other.y);
+  }
+
+  eq(other: Vec2D): boolean {
+    return this.x === other.x && this.y === other.y;
+  }
+
+  distance(other: Vec2D): number {
+    const dx = this.x - other.x;
+    const dy = this.y - other.y;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+
+  toString(): string {
+    return `Vec2D(${this.x}, ${this.y})`;
   }
 }
 EOF
 
-cat > .gitignore << 'EOF'
-# Dependencies
-node_modules/
-.pnpm-store/
-.npm/
+cat > packages/core/src/__tests__/vec2d.test.ts << 'EOF'
+import { describe, it, expect } from 'vitest';
+import { Vec2D } from '../vec2d';
 
-# Build outputs
-dist/
-build/
-lib/
-*.tsbuildinfo
+describe('Vec2D', () => {
+  it('should create a vector with given coordinates', () => {
+    const v = new Vec2D(1, 2);
+    expect(v.x).toBe(1);
+    expect(v.y).toBe(2);
+  });
 
-# Environment
-.env
-.env.local
-.env.*.local
+  it('should add two vectors correctly', () => {
+    const v1 = new Vec2D(1, 2);
+    const v2 = new Vec2D(3, 4);
+    const result = v1.add(v2);
+    expect(result.x).toBe(4);
+    expect(result.y).toBe(6);
+  });
 
-# Logs
-logs/
-*.log
-npm-debug.log*
-pnpm-debug.log*
+  it('should subtract two vectors correctly', () => {
+    const v1 = new Vec2D(5, 7);
+    const v2 = new Vec2D(2, 3);
+    const result = v1.sub(v2);
+    expect(result.x).toBe(3);
+    expect(result.y).toBe(4);
+  });
 
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-.DS_Store
+  it('should check equality correctly', () => {
+    const v1 = new Vec2D(1, 2);
+    const v2 = new Vec2D(1, 2);
+    const v3 = new Vec2D(2, 1);
+    expect(v1.eq(v2)).toBe(true);
+    expect(v1.eq(v3)).toBe(false);
+  });
 
-# Coverage
-coverage/
-.nyc_output/
+  it('should calculate distance correctly', () => {
+    const v1 = new Vec2D(0, 0);
+    const v2 = new Vec2D(3, 4);
+    expect(v1.distance(v2)).toBe(5);
+  });
 
-# Temp files
-tmp/
-temp/
-EOF
-
-cat > .editorconfig << 'EOF'
-root = true
-
-[*]
-indent_style = space
-indent_size = 2
-end_of_line = lf
-charset = utf-8
-trim_trailing_whitespace = true
-insert_final_newline = true
-
-[*.md]
-trim_trailing_whitespace = false
-EOF
-
-cat > .prettierrc << 'EOF'
-{
-  "semi": true,
-  "trailingComma": "all",
-  "singleQuote": true,
-  "printWidth": 100,
-  "tabWidth": 2,
-  "endOfLine": "lf"
-}
-EOF
-
-cat > LICENSE << 'EOF'
-MIT License
-
-Copyright (c) 2026 VG2 Contributors
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-EOF
-
-cat > vitest.config.ts << 'EOF'
-import { defineConfig } from 'vitest/config';
-
-export default defineConfig({
-  test: {
-    globals: true,
-    environment: 'node',
-    coverage: {
-      provider: 'v8',
-      reporter: ['text', 'json', 'html'],
-    },
-  },
+  it('should return string representation', () => {
+    const v = new Vec2D(1, 2);
+    expect(v.toString()).toBe('Vec2D(1, 2)');
+  });
 });
 EOF
 
-cat > tsconfig.json << 'EOF'
-{
-  "compilerOptions": {
-    "target": "ES2022",
-    "module": "ESNext",
-    "moduleResolution": "bundler",
-    "lib": ["ES2022"],
-    "types": ["vitest/globals"],
-    "strict": true,
-    "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true
-  },
-  "exclude": ["node_modules", "dist"]
-}
-EOF
-
-# 2. Создание пакетов
-mkdir -p packages/core/src
-mkdir -p packages/server/src
-mkdir -p packages/shared/src
-mkdir -p packages/types/src
-
-# Core package
-cat > packages/core/package.json << 'EOF'
-{
-  "name": "@vg2/core",
-  "version": "1.0.0",
-  "type": "module",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch",
-    "test": "vitest"
-  },
-  "devDependencies": {
-    "typescript": "^5.4.5",
-    "vitest": "^1.5.0"
-  }
-}
-EOF
-
-cat > packages/core/tsconfig.json << 'EOF'
-{
-  "extends": "../../tsconfig.json",
-  "compilerOptions": {
-    "outDir": "./dist",
-    "rootDir": "./src"
-  },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "**/*.test.ts"]
-}
-EOF
-
-cat > packages/core/vitest.config.ts << 'EOF'
-import { defineConfig } from 'vitest/config';
-
-export default defineConfig({
-  test: {
-    globals: true,
-    environment: 'node',
-  },
-});
-EOF
-
-# Server package
-cat > packages/server/package.json << 'EOF'
-{
-  "name": "@vg2/server",
-  "version": "1.0.0",
-  "type": "module",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch",
-    "test": "vitest"
-  },
-  "devDependencies": {
-    "typescript": "^5.4.5",
-    "vitest": "^1.5.0"
-  }
-}
-EOF
-
-cat > packages/server/tsconfig.json << 'EOF'
-{
-  "extends": "../../tsconfig.json",
-  "compilerOptions": {
-    "outDir": "./dist",
-    "rootDir": "./src"
-  },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "**/*.test.ts"]
-}
-EOF
-
-cat > packages/server/vitest.config.ts << 'EOF'
-import { defineConfig } from 'vitest/config';
-
-export default defineConfig({
-  test: {
-    globals: true,
-    environment: 'node',
-  },
-});
-EOF
-
-# Shared package
-cat > packages/shared/package.json << 'EOF'
-{
-  "name": "@vg2/shared",
-  "version": "1.0.0",
-  "type": "module",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch",
-    "test": "vitest"
-  },
-  "devDependencies": {
-    "typescript": "^5.4.5",
-    "vitest": "^1.5.0"
-  }
-}
-EOF
-
-cat > packages/shared/tsconfig.json << 'EOF'
-{
-  "extends": "../../tsconfig.json",
-  "compilerOptions": {
-    "outDir": "./dist",
-    "rootDir": "./src"
-  },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "**/*.test.ts"]
-}
-EOF
-
-cat > packages/shared/vitest.config.ts << 'EOF'
-import { defineConfig } from 'vitest/config';
-
-export default defineConfig({
-  test: {
-    globals: true,
-    environment: 'node',
-  },
-});
-EOF
-
-# Types package
-cat > packages/types/package.json << 'EOF'
-{
-  "name": "@vg2/types",
-  "version": "1.0.0",
-  "type": "module",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch",
-    "test": "vitest"
-  },
-  "devDependencies": {
-    "typescript": "^5.4.5",
-    "vitest": "^1.5.0"
-  }
-}
-EOF
-
-cat > packages/types/tsconfig.json << 'EOF'
-{
-  "extends": "../../tsconfig.json",
-  "compilerOptions": {
-    "outDir": "./dist",
-    "rootDir": "./src"
-  },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "**/*.test.ts"]
-}
-EOF
-
-cat > packages/types/vitest.config.ts << 'EOF'
-import { defineConfig } from 'vitest/config';
-
-export default defineConfig({
-  test: {
-    globals: true,
-    environment: 'node',
-  },
-});
-EOF
-
-# 3. Начальные файлы для каждого пакета
 cat > packages/core/src/index.ts << 'EOF'
-export const VERSION = '1.0.0';
+export * from './vec2d';
+export * from './types';
 EOF
 
-cat > packages/server/src/index.ts << 'EOF'
-export const VERSION = '1.0.0';
-EOF
-
-cat > packages/shared/src/index.ts << 'EOF'
-export const VERSION = '1.0.0';
-EOF
-
-cat > packages/types/src/index.ts << 'EOF'
-export const VERSION = '1.0.0';
-EOF
-
-# 4. Обновление PROGRESS.md
+# 2. Обновление PROGRESS.md
 cat > PROGRESS.md << 'EOF'
 # Прогресс выполнения
 
@@ -362,16 +122,18 @@ cat > PROGRESS.md << 'EOF'
 - [x] Созданы базовые пакеты: core, server, shared, types
 - [x] Настроена TypeScript конфигурация для всех пакетов
 - [x] Настроена тестовая инфраструктура Vitest
+- [x] Реализован Vec2D с методами (add, sub, eq, distance)
+- [x] Написаны тесты для Vec2D
+- [x] Реализованы типы Direction, Entity, Player, World
 
 ## В процессе
-- [ ] Реализация Vec2D в core пакете
+- [ ] Настройка CI (GitHub Actions)
 
 ## Очередь
-- [ ] Настройка CI (GitHub Actions)
-- [ ] Написание первого падающего теста
+- [ ] Server — структура и первичные модули
 EOF
 
-# 5. Обновление TODO.md
+# 3. Обновление TODO.md (перенос выполненных пунктов)
 cat > TODO.md << 'EOF'
 # TODO — основа сервера
 
@@ -392,16 +154,16 @@ cat > TODO.md << 'EOF'
 ## 3. Настройка тестовой среды (TDD с самого начала)
 - [x] Установить Vitest в корне и каждом пакете
 - [x] Настроить общую команду `test` для запуска всех тестов
-- [ ] Написать первый падающий тест для core (например, сложение векторов)
-- [ ] Настроить coverage (istanbul/v8)
+- [x] Написать первый падающий тест для core (сложение векторов)
+- [x] Настроить coverage (istanbul/v8)
 - [ ] Добавить CI (GitHub Actions) для автоматического прогона тестов на каждый push/PR
 
 ## 4. Core — базовые сущности
-- [ ] Реализовать Vec2D с методами (add, sub, eq, distance)
-- [ ] Написать тесты для Vec2D
-- [ ] Реализовать типы Direction (North, South, East, West)
-- [ ] Реализовать базовые интерфейсы Entity, Player, World
-- [ ] Покрыть тестами
+- [x] Реализовать Vec2D с методами (add, sub, eq, distance)
+- [x] Написать тесты для Vec2D
+- [x] Реализовать типы Direction (North, South, East, West)
+- [x] Реализовать базовые интерфейсы Entity, Player, World
+- [x] Покрыть тестами
 
 ## 5. Server — структура и первичные модули
 - [ ] Создать точку входа (index.ts) для сервера
@@ -453,13 +215,7 @@ cat > TODO.md << 'EOF'
 - [ ] Написать тесты
 EOF
 
-# 6. Инициализация git и первый коммит
-git init
+# 4. Коммит
 git add .
-git commit -m "Initial commit: project structure with npm workspaces"
-
-echo "\n✅ Проект успешно инициализирован!"
-echo "📦 Структура монорепозитория создана"
-echo "🔧 Для начала работы выполните:"
-echo "  npm install"
-echo "  npm test"
+git commit -m "feat(core): implement Vec2D and basic types with tests"
+EOF

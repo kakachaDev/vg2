@@ -42,10 +42,14 @@ cat << 'EOF'
 ФОРМАТ ПЕРВОГО ОТВЕТА:
 ```bash
 #!/bin/bash
-echo "Нужны файлы:"
-echo "- src/file1.ts"
-echo "- src/file2.ts"
-# ... запрос файлов
+echo "--- package.json ---"
+cat package.json 2>/dev/null || echo "File not found"
+echo ""
+
+echo "--- tsconfig.json ---"
+cat tsconfig.json 2>/dev/null || echo "File not found"
+echo ""
+# ... выполнение каких-то действий и запрос файлов
 ```
 
 ФОРМАТ ОТВЕТА С ЗАДАЧЕЙ:
