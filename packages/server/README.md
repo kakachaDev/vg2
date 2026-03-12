@@ -26,8 +26,8 @@ const server = new Server({
   port: 3000,
   worldConfig: {
     chunkSize: 16,
-    viewDistance: 2
-  }
+    viewDistance: 2,
+  },
 });
 
 server.start();

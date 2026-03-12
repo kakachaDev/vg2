@@ -26,6 +26,7 @@ We welcome contributions! Please follow these guidelines.
 ## Commit Messages
 
 We follow [Conventional Commits](https://www.conventionalcommits.org/):
+
 - `feat:` for new features
 - `fix:` for bug fixes
 - `docs:` for documentation

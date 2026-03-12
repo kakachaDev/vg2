@@ -132,5 +132,7 @@
 - [x] Исправлены тесты на получение чанков
 
 ## Документация
+
 - [x] Создан README.md для пакетов core, server, shared, types
 - [x] Создан CONTRIBUTING.md в корне
+- [x] Создан корневой README.md

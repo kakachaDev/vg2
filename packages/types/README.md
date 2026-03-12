@@ -23,7 +23,7 @@ import { Player, Direction } from '@vg2/types';
 const player: Player = {
   id: 'p1',
   position: { x: 0, y: 0 },
-  direction: Direction.North
+  direction: Direction.North,
 };
 ```
 
