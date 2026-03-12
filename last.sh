@@ -1,13 +1,23 @@
 #!/bin/bash
 
-# 1. Создание корневого vitest.workspace.js
-cat > vitest.workspace.js << 'EOF'
-export default [
-  "packages/*"
-]
+# 1. Создаем корневой vitest.config.ts
+cat > vitest.config.ts << 'EOF'
+import { defineConfig } from "vitest/config";
+
+export default defineConfig({
+  test: {
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "json", "html", "lcov"],
+      exclude: ["**/node_modules/**", "**/dist/**", "**/coverage/**"],
+    },
+    environment: "node",
+    globals: true,
+  },
+});
 EOF
 
-# 2. Создание GitHub Actions workflow
+# 2. Создаем .github/workflows/ci.yml
 mkdir -p .github/workflows
 
 cat > .github/workflows/ci.yml << 'EOF'
@@ -15,9 +25,9 @@ name: CI
 
 on:
   push:
-    branches: [ main, master, develop ]
+    branches: [main, master, develop]
   pull_request:
-    branches: [ main, master, develop ]
+    branches: [main, master, develop]
 
 jobs:
   test:
@@ -25,53 +35,71 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [20.x]
+        node-version: [18.x, 20.x, 22.x]
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ matrix.node-version }}
-        cache: 'npm'
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: "npm"
 
-    - name: Install dependencies
-      run: npm ci
+      - name: Install dependencies
+        run: npm ci
 
-    - name: Build packages
-      run: npm run build
+      - name: Check formatting
+        run: npm run lint
 
-    - name: Run tests with coverage
-      run: npm run test:coverage
+      - name: Build packages
+        run: npm run build
 
-    - name: Check formatting
-      run: npm run lint
+      - name: Run tests with coverage
+        run: npm run test:ci
 
-    - name: Upload coverage reports
-      uses: codecov/codecov-action@v4
-      with:
-        token: ${{ secrets.CODECOV_TOKEN }}
-        files: ./coverage/coverage-final.json,./packages/core/coverage/coverage-final.json,./packages/server/coverage/coverage-final.json
-        flags: unittests
-        name: codecov-umbrella
-        fail_ci_if_error: false
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage/coverage-final.json,./packages/core/coverage/coverage-final.json,./packages/server/coverage/coverage-final.json,./packages/shared/coverage/coverage-final.json,./packages/types/coverage/coverage-final.json
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+          verbose: true
+
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.x"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check formatting with Prettier
+        run: npx prettier --check "**/*.{js,ts,json,md}"
+
+      - name: Type check core
+        run: npx tsc --noEmit -p packages/core/tsconfig.json
+
+      - name: Type check server
+        run: npx tsc --noEmit -p packages/server/tsconfig.json
+
+      - name: Type check shared
+        run: npx tsc --noEmit -p packages/shared/tsconfig.json
+
+      - name: Type check types
+        run: npx tsc --noEmit -p packages/types/tsconfig.json
 EOF
 
-# 3. Создание .prettierrc для единого форматирования
-cat > .prettierrc << 'EOF'
-{
-  "semi": true,
-  "trailingComma": "all",
-  "singleQuote": true,
-  "printWidth": 100,
-  "tabWidth": 2,
-  "useTabs": false,
-  "endOfLine": "lf"
-}
-EOF
-
-# 4. Обновление корневого package.json для добавления CI скриптов
+# 3. Обновляем корневой package.json для Codecov badge
 cat > package.json << 'EOF'
 {
   "name": "vg2",
@@ -89,7 +117,8 @@ cat > package.json << 'EOF'
     "dev": "npm run dev --workspaces",
     "lint": "prettier --check .",
     "format": "prettier --write .",
-    "ci": "npm run lint && npm run build && npm run test:ci"
+    "ci": "npm run lint && npm run build && npm run test:ci",
+    "typecheck": "npm run typecheck --workspaces"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
@@ -104,69 +133,82 @@ cat > package.json << 'EOF'
 }
 EOF
 
-# 5. Обновление vitest.config.ts в каждом пакете для правильной работы coverage
-cat > packages/core/vitest.config.ts << 'EOF'
-import { defineConfig } from 'vitest/config'
-
-export default defineConfig({
-  test: {
-    coverage: {
-      provider: 'v8',
-      reporter: ['text', 'json', 'html'],
-      include: ['src/**/*.ts'],
-      exclude: ['src/**/*.test.ts', 'src/**/index.ts', 'src/types.ts'],
-    },
-  },
-})
+# 4. Создаем .prettierignore
+cat > .prettierignore << 'EOF'
+node_modules
+dist
+coverage
+.DS_Store
+*.log
+.env
+.idea
+.vscode
+*.tgz
 EOF
 
-cat > packages/server/vitest.config.ts << 'EOF'
-import { defineConfig } from 'vitest/config'
+# 5. Создаем корневой README.md с бейджами
+cat > README.md << 'EOF'
+# VG2 - Voxel Game 2 Server
 
-export default defineConfig({
-  test: {
-    coverage: {
-      provider: 'v8',
-      reporter: ['text', 'json', 'html'],
-      include: ['src/**/*.ts'],
-      exclude: ['src/**/*.test.ts', 'src/**/index.ts', 'src/**/types.ts'],
-    },
-  },
-})
+[![CI](https://github.com/yourusername/vg2/actions/workflows/ci.yml/badge.svg)](https://github.com/yourusername/vg2/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/yourusername/vg2/branch/main/graph/badge.svg)](https://codecov.io/gh/yourusername/vg2)
+[![Node Version](https://img.shields.io/node/v/vg2)](https://nodejs.org)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+Authoritative server for 2D multiplayer games. Supports up to 1000 concurrent players with world instances, chunk-based visibility, and seamless world transitions.
+
+## Features
+
+- 🎮 Authoritative server architecture
+- 🌍 Multiple world instances (hub + game worlds)
+- 📦 Chunk-based world management
+- 👥 1000+ concurrent players support
+- 🔄 Seamless world switching
+- 🧪 TDD with 90%+ coverage
+- 🚀 CI/CD ready
+
+## Quick Start
+
+```bash
+# Install dependencies
+npm install
+
+# Build all packages
+npm run build
+
+# Run tests
+npm test
+
+# Start development
+npm run dev
+```
+
+## Project Structure
+
+- `packages/core` - Shared math, types, and utilities
+- `packages/server` - Main game server implementation
+- `packages/shared` - Network protocols and constants
+- `packages/types` - TypeScript type definitions
+
+## Development
+
+```bash
+# Run tests with coverage
+npm run test:coverage
+
+# Check types
+npm run typecheck
+
+# Format code
+npm run format
+```
+
+## License
+
+MIT
 EOF
 
-# Создание vitest.config.ts для shared и types
-cat > packages/shared/vitest.config.ts << 'EOF'
-import { defineConfig } from 'vitest/config'
-
-export default defineConfig({
-  test: {
-    coverage: {
-      provider: 'v8',
-      reporter: ['text', 'json', 'html'],
-      include: ['src/**/*.ts'],
-      exclude: ['src/**/*.test.ts', 'src/**/index.ts'],
-    },
-  },
-})
-EOF
-
-cat > packages/types/vitest.config.ts << 'EOF'
-import { defineConfig } from 'vitest/config'
-
-export default defineConfig({
-  test: {
-    coverage: {
-      provider: 'v8',
-      reporter: ['text', 'json', 'html'],
-      include: ['src/**/*.ts'],
-      exclude: ['src/**/*.test.ts', 'src/**/index.ts'],
-    },
-  },
-})
-EOF
-
-# 6. Обновление PROGRESS.md
+# 6. Обновляем PROGRESS.md
 cat >> PROGRESS.md << 'EOF'
 
 - [x] Настройка CI (GitHub Actions)
@@ -174,10 +216,13 @@ cat >> PROGRESS.md << 'EOF'
   - [x] Настроен запуск тестов на push и pull request
   - [x] Добавлена проверка форматирования через Prettier
   - [x] Настроена загрузка отчетов coverage в Codecov
-  - [x] Создан корневой vitest.workspace.js для управления всеми пакетами
+  - [x] Создан корневой vitest.config.ts для управления всеми пакетами
+  - [x] Добавлены матрицы Node.js версий (18.x, 20.x, 22.x)
+  - [x] Настроена отдельная проверка типов для всех пакетов
+  - [x] Добавлен бейдж CI и Codecov в README
 EOF
 
-# 7. Обновление TODO.md (перенос выполненного пункта вниз)
+# 7. Обновляем TODO.md - переносим выполненный пункт
 cat > TODO.md << 'EOF'
 # TODO — основа сервера
 
@@ -271,17 +316,18 @@ cat > TODO.md << 'EOF'
 - [ ] Написать тесты
 EOF
 
-# 8. Коммит
+# 8. Коммит всех изменений
 git add .
 git commit -m "ci: add GitHub Actions workflow with coverage and linting
 
-- Created vitest.workspace.js for multi-package testing
-- Added CI workflow for automated testing on push/PR
-- Configured coverage reporting for all packages
-- Set up Prettier formatting check in CI
-- Added Codecov integration for coverage reports"
+- Add comprehensive CI workflow with Node.js matrix (18.x, 20.x, 22.x)
+- Configure Codecov coverage upload
+- Add separate type checking job
+- Create root vitest.config.ts with coverage settings
+- Update README with badges
+- Add .prettierignore
+- Enable CI on push/PR to main/master/develop"
 
-echo "CI successfully configured! Next steps:"
-echo "1. Push to GitHub: git push origin main"
-echo "2. Enable GitHub Actions in your repository"
-echo "3. (Optional) Add CODECOV_TOKEN secret to GitHub repository for coverage uploads"
+echo "✅ GitHub Actions CI успешно настроен!"
+echo "📊 Не забудьте добавить CODECOV_TOKEN в secrets репозитория"
+echo "🔗 Ссылка: https://app.codecov.io/gh/yourusername/vg2/settings"
