@@ -35,8 +35,8 @@ describe('Integration Tests', () => {
     
     const moved = playerManager.movePlayer('player1', new Vec2D(3, 3));
     expect(moved).toBe(true);
-    expect(player.position.x).toBe(10);
-    expect(player.position.y).toBe(10);
+    expect(player.position.x).toBe(3);
+    expect(player.position.y).toBe(3);
 
     playerManager.removePlayer('player1');
     expect(playerManager.getPlayer('player1')).toBeUndefined();

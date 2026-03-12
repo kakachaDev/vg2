@@ -78,7 +78,9 @@ describe('Socket.IO Server', () => {
         });
 
         clientSocket.on(ServerEvent.WORLD_STATE, () => {
+          setTimeout(() => {
           clientSocket.emit(ClientEvent.MOVE, {
+          }, 50);
             playerId: 'test-player',
             position: { x: 3, y: 3 },
             sequence: 1

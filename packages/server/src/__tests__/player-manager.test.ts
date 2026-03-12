@@ -46,8 +46,8 @@ describe('PlayerManager', () => {
     const moved = playerManager.movePlayer('1', newPosition);
 
     expect(moved).toBe(true);
-    expect(player.position.x).toBe(10);
-    expect(player.position.y).toBe(10);
+    expect(player.position.x).toBe(3);
+    expect(player.position.y).toBe(3);
   });
 
   it('should update player session', () => {
