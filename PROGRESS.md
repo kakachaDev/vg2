@@ -136,3 +136,6 @@
 - [x] Создан README.md для пакетов core, server, shared, types
 - [x] Создан CONTRIBUTING.md в корне
 - [x] Создан корневой README.md
+- [x] Рефакторинг: вынесена обработка событий в отдельные классы-обработчики (JoinWorldHandler, MoveHandler, ChatHandler, LeaveWorldHandler, DisconnectHandler)
+- [x] Создана система регистрации обработчиков в Server (registerHandler)
+- [x] Server.ts теперь использует эти обработчики вместо прямого кода
