@@ -1,1 +1,4 @@
-export const VERSION = '1.0.0';
+export { Server } from './core/server';
+export { World } from './world/world';
+export { Chunk } from './world/chunk';
+export { PlayerManager } from './managers/player-manager';
