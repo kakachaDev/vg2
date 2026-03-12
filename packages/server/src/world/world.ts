@@ -16,12 +16,23 @@ export class World {
 
   public addEntity(entity: Entity): void {
     this.entities.set(entity.id, entity);
+    const chunkX = Math.floor(entity.position.x / Chunk.SIZE);
+    const chunkY = Math.floor(entity.position.y / Chunk.SIZE);
+    const chunk = this.getChunk(chunkX, chunkY);
+    chunk.addEntity(entity);
+    this.entityChunks.set(entity.id, `${chunkX},${chunkY}`);
     this.updateEntityChunks(entity);
   }
 
   public removeEntity(entityId: string): boolean {
     const entity = this.entities.get(entityId);
     if (entity) {
+      const chunkKey = this.entityChunks.get(entityId);
+      if (chunkKey) {
+        const [chunkX, chunkY] = chunkKey.split(',').map(Number);
+        const chunk = this.getChunk(chunkX, chunkY);
+        chunk.removeEntity(entityId);
+      }
       this.playerChunks.delete(entityId);
       this.entityChunks.delete(entityId);
     }
