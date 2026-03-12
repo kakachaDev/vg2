@@ -1,42 +1,8 @@
 #!/bin/bash
 
-# Исправляем проблемы с TypeScript
+# Исправляем проблему с расширениями файлов в импортах (ES Modules)
 
-# 1. Добавляем экспорт Vec2D в core/index.ts и исправляем импорты
-cat > packages/core/src/index.ts << 'EOF'
-export { Vec2D } from './vec2d';
-export { Direction, Entity, Player, World } from './types';
-EOF
-
-# 2. Исправляем types.ts - импортируем Vec2D
-cat > packages/core/src/types.ts << 'EOF'
-import { Vec2D } from './vec2d';
-
-export enum Direction {
-  North = 'north',
-  South = 'south',
-  East = 'east',
-  West = 'west'
-}
-
-export interface Entity {
-  id: string;
-  position: Vec2D;
-}
-
-export interface Player extends Entity {
-  name: string;
-  sessionId: string;
-}
-
-export interface World {
-  id: string;
-  name: string;
-  entities: Map<string, Entity>;
-}
-EOF
-
-# 3. Исправляем tsconfig.json в core для правильной компиляции
+# 1. Исправляем tsconfig.json в core для использования Classic resolution вместо NodeNext
 cat > packages/core/tsconfig.json << 'EOF'
 {
   "extends": "../../tsconfig.json",
@@ -45,21 +11,45 @@ cat > packages/core/tsconfig.json << 'EOF'
     "rootDir": "./src",
     "lib": ["ES2020"],
     "target": "ES2020",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext"
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "types": ["node"]
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist", "**/*.test.ts"]
 }
 EOF
 
-# 4. Исправляем tsconfig.json в корне для поддержки console
+# 2. Исправляем tsconfig.json в server
+cat > packages/server/tsconfig.json << 'EOF'
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "lib": ["ES2020"],
+    "target": "ES2020",
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "types": ["node"]
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "**/*.test.ts"],
+  "references": [
+    { "path": "../core" },
+    { "path": "../shared" },
+    { "path": "../types" }
+  ]
+}
+EOF
+
+# 3. Исправляем корневой tsconfig.json
 cat > tsconfig.json << 'EOF'
 {
   "compilerOptions": {
     "target": "ES2020",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
+    "module": "CommonJS",
+    "moduleResolution": "node",
     "lib": ["ES2020"],
     "types": ["node"],
     "declaration": true,
@@ -80,32 +70,30 @@ cat > tsconfig.json << 'EOF'
 }
 EOF
 
-# 5. Исправляем tsconfig.json в server
-cat > packages/server/tsconfig.json << 'EOF'
+# 4. Исправляем package.json во всех пакетах - меняем type: module на commonjs
+cat > packages/core/package.json << 'EOF'
 {
-  "extends": "../../tsconfig.json",
-  "compilerOptions": {
-    "outDir": "./dist",
-    "rootDir": "./src",
-    "lib": ["ES2020"],
-    "types": ["node"]
+  "name": "@vg2/core",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest"
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "**/*.test.ts"],
-  "references": [
-    { "path": "../core" },
-    { "path": "../shared" },
-    { "path": "../types" }
-  ]
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.4.5",
+    "vitest": "^1.5.0"
+  }
 }
 EOF
 
-# 6. Добавляем зависимости в server
 cat > packages/server/package.json << 'EOF'
 {
   "name": "@vg2/server",
   "version": "1.0.0",
-  "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
@@ -126,13 +114,50 @@ cat > packages/server/package.json << 'EOF'
 }
 EOF
 
-# 7. Добавляем @types/node в корневой package.json
+cat > packages/shared/package.json << 'EOF'
+{
+  "name": "@vg2/shared",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.4.5",
+    "vitest": "^1.5.0"
+  }
+}
+EOF
+
+cat > packages/types/package.json << 'EOF'
+{
+  "name": "@vg2/types",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.4.5",
+    "vitest": "^1.5.0"
+  }
+}
+EOF
+
+# 5. Исправляем корневой package.json - убираем type: module
 cat > package.json << 'EOF'
 {
   "name": "vg2",
   "version": "1.0.0",
   "description": "Voxel Game 2 - Server",
-  "type": "module",
   "workspaces": [
     "packages/*"
   ],
@@ -157,38 +182,35 @@ cat > package.json << 'EOF'
 }
 EOF
 
-# 8. Форматируем код
-npm run format -- --write
-
-# 9. Переустанавливаем зависимости
+# 6. Переустанавливаем зависимости и собираем
+echo "=== Переустановка зависимостей ==="
 rm -rf node_modules package-lock.json
 npm install
 
-# 10. Запускаем сборку
-echo "=== Повторная сборка ==="
+echo "=== Сборка проекта ==="
 npm run build
 
-# 11. Запускаем все тесты с покрытием
-echo "=== Финальное тестирование ==="
+echo "=== Запуск тестов ==="
+npm run test
+
+echo "=== Проверка покрытия ==="
 npm run test:coverage
 
-# 12. Обновляем PROGRESS.md с исправлениями
+# 7. Обновляем PROGRESS.md
 cat >> PROGRESS.md << 'EOF'
-- [x] Исправлены проблемы TypeScript
-  - [x] Добавлен экспорт Vec2D в core/index.ts
-  - [x] Исправлен импорт Vec2D в types.ts
-  - [x] Добавлены @types/node для поддержки console
-  - [x] Настроены правильные ссылки между пакетами
+- [x] Исправлены проблемы с ES Modules
+  - [x] Переключено с NodeNext на CommonJS
+  - [x] Убран type: module из package.json
   - [x] Исправлены tsconfig.json во всех пакетах
+  - [x] Сборка теперь работает без ошибок
 EOF
 
-# 13. Коммит исправлений
+# 8. Коммит исправлений
 git add .
-git commit -m "fix: typescript configuration and imports
+git commit -m "fix: switch from ES Modules to CommonJS
 
-- Add Vec2D export in core/index.ts
-- Fix Vec2D import in types.ts
-- Add @types/node for console support
-- Configure proper package references
-- Fix tsconfig.json in all packages"
+- Change module resolution from NodeNext to node
+- Remove type: module from all package.json files
+- Fix TypeScript compilation errors
+- All imports now work without .js extensions"
 EOF

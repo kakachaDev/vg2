@@ -1,7 +1,6 @@
 {
   "name": "@vg2/core",
   "version": "1.0.0",
-  "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
@@ -10,6 +9,7 @@
     "test": "vitest"
   },
   "devDependencies": {
+    "@types/node": "^20.0.0",
     "typescript": "^5.4.5",
     "vitest": "^1.5.0"
   }
