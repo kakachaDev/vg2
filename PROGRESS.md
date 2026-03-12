@@ -43,3 +43,10 @@
   - [x] Настроен module: NodeNext и moduleResolution: NodeNext
   - [x] Возвращен type: module во все package.json
   - [x] Сборка работает с ES Modules правильно
+
+- [x] Настройка CI (GitHub Actions)
+  - [x] Создан GitHub Actions workflow для автоматического тестирования
+  - [x] Настроен запуск тестов на push и pull request
+  - [x] Добавлена проверка форматирования через Prettier
+  - [x] Настроена загрузка отчетов coverage в Codecov
+  - [x] Создан корневой vitest.workspace.js для управления всеми пакетами
