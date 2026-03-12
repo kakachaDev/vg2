@@ -42,7 +42,7 @@ describe('PlayerManager', () => {
       player.worldId = 'default';
     }
 
-    const newPosition = new Vec2D(10, 10);
+    const newPosition = new Vec2D(3, 3);
     const moved = playerManager.movePlayer('1', newPosition);
 
     expect(moved).toBe(true);

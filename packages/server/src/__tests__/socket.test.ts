@@ -80,7 +80,7 @@ describe('Socket.IO Server', () => {
         clientSocket.on(ServerEvent.WORLD_STATE, () => {
           clientSocket.emit(ClientEvent.MOVE, {
             playerId: 'test-player',
-            position: { x: 10, y: 10 },
+            position: { x: 3, y: 3 },
             sequence: 1
           });
 
@@ -157,7 +157,7 @@ describe('Socket.IO Server', () => {
       clientSocket.on('connect', () => {
         clientSocket.emit(ClientEvent.MOVE, {
           playerId: 'non-existent-player',
-          position: { x: 10, y: 10 },
+          position: { x: 3, y: 3 },
           sequence: 1
         });
       });

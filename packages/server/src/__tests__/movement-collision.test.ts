@@ -98,10 +98,10 @@ describe('Movement with Collision Detection', () => {
   it('should prevent moving through other players', async () => {
     const player1 = new Player('player1', 'Player 1', new Vec2D(0, 0));
     const player2 = new Player('player2', 'Player 2', new Vec2D(2, 0));
-    
+
     server.getPlayerManager().addPlayer(player1);
     server.getPlayerManager().addPlayer(player2);
-    
+
     const world = server.getWorld('default');
     if (world) {
       world.addEntity(player1);
@@ -152,6 +152,7 @@ describe('Movement with Collision Detection', () => {
         });
 
         clientSocket.on(ServerEvent.WORLD_STATE, () => {
+          // Первое движение с sequence 2
           clientSocket.emit(ClientEvent.MOVE, {
             playerId: 'test-player',
             position: { x: 1, y: 0 },
@@ -163,6 +164,7 @@ describe('Movement with Collision Detection', () => {
           });
 
           setTimeout(() => {
+            // Второе движение с sequence 1 (out of order)
             clientSocket.emit(ClientEvent.MOVE, {
               playerId: 'test-player',
               position: { x: 2, y: 0 },

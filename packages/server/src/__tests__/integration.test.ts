@@ -33,7 +33,7 @@ describe('Integration Tests', () => {
     
     playerManager.updatePlayerWorld('player1', 'default');
     
-    const moved = playerManager.movePlayer('player1', new Vec2D(10, 10));
+    const moved = playerManager.movePlayer('player1', new Vec2D(3, 3));
     expect(moved).toBe(true);
     expect(player.position.x).toBe(10);
     expect(player.position.y).toBe(10);

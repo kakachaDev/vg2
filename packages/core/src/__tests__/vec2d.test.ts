@@ -39,16 +39,16 @@ describe('Vec2D', () => {
   });
 
   it('should return string representation', () => {
+    const v = new Vec2D(1, 2);
+    expect(v.toString()).toBe('Vec2D(1, 2)');
+  });
 
-  it("should clone vector correctly", () => {
+  it('should clone vector correctly', () => {
     const v1 = new Vec2D(1, 2);
     const v2 = v1.clone();
     expect(v2.x).toBe(1);
     expect(v2.y).toBe(2);
     expect(v1).not.toBe(v2);
     expect(v1.eq(v2)).toBe(true);
-  });
-    const v = new Vec2D(1, 2);
-    expect(v.toString()).toBe('Vec2D(1, 2)');
   });
 });
