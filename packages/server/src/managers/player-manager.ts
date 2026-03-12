@@ -37,17 +37,8 @@ export class PlayerManager {
     if (!player) {
       return false;
     }
-
-    const world = player.worldId ? this.server.getWorld(player.worldId) : null;
     
-    const oldPosition = player.position;
     player.position = newPosition;
-
-    if (world) {
-      world.removeEntity(playerId);
-      world.addEntity(player);
-    }
-
     return true;
   }
 

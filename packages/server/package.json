@@ -2,22 +2,30 @@
   "name": "@vg2/server",
   "version": "1.0.0",
   "type": "module",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
-    "test": "vitest"
+    "test": "vitest",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@types/socket.io": "^3.0.1",
     "@vg2/core": "^1.0.0",
     "@vg2/shared": "^1.0.0",
-    "@vg2/types": "^1.0.0",
-    "socket.io": "^4.8.3"
+    "socket.io": "^4.7.2"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
+    "@types/socket.io": "^3.0.2",
+    "@types/socket.io-client": "^3.0.0",
+    "socket.io-client": "^4.7.2",
     "typescript": "^5.4.5",
     "vitest": "^1.5.0"
   }

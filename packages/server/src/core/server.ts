@@ -2,8 +2,8 @@ import { Server as HttpServer } from 'http';
 import { Server as SocketServer } from 'socket.io';
 import { World } from '../world/world.js';
 import { PlayerManager } from '../managers/player-manager.js';
-import { ClientEvent, ServerEvent, C2SMovePayload, C2SJoinWorldPayload, C2SLeaveWorldPayload, C2SChatPayload, C2SInteractPayload } from '@vg2/shared';
-import { movePayloadSchema, joinWorldPayloadSchema, leaveWorldPayloadSchema, chatPayloadSchema, interactPayloadSchema } from '@vg2/shared';
+import { ClientEvent, ServerEvent } from '@vg2/shared';
+import { Vec2D } from '@vg2/core';
 
 export class Server {
   private worlds: Map<string, World> = new Map();
@@ -52,10 +52,9 @@ export class Server {
     this.io.on('connection', (socket) => {
       console.log(`Client connected: ${socket.id}`);
 
-      socket.on(ClientEvent.JOIN_WORLD, async (payload: C2SJoinWorldPayload) => {
+      socket.on(ClientEvent.JOIN_WORLD, async (payload: any) => {
         try {
-          const validated = joinWorldPayloadSchema.parse(payload);
-          const player = this.playerManager.getPlayer(validated.playerId);
+          const player = this.playerManager.getPlayer(payload.playerId);
           
           if (!player) {
             socket.emit(ServerEvent.ERROR, {
@@ -65,13 +64,16 @@ export class Server {
             return;
           }
 
-          socket.join(`world:${validated.worldId}`);
+          socket.join(`world:${payload.worldId}`);
+          player.worldId = payload.worldId;
           
-          const world = this.getWorld(validated.worldId);
+          const world = this.getWorld(payload.worldId);
           if (world) {
+            world.addEntity(player);
+            
             const nearbyChunks = world.getChunksInRange(
-              validated.spawnPoint?.x || 0,
-              validated.spawnPoint?.y || 0,
+              payload.spawnPoint?.x || 0,
+              payload.spawnPoint?.y || 0,
               2
             );
 
@@ -86,7 +88,7 @@ export class Server {
                 entities: chunk.getAllEntities().map(e => ({
                   id: e.id,
                   type: e.type,
-                  position: e.position
+                  position: { x: e.position.x, y: e.position.y }
                 }))
               });
             }
@@ -103,18 +105,18 @@ export class Server {
             player: {
               id: player.id,
               name: player.name,
-              position: player.position
+              position: { x: player.position.x, y: player.position.y }
             },
-            worldId: validated.worldId
+            worldId: payload.worldId
           });
 
-          socket.broadcast.to(`world:${validated.worldId}`).emit(ServerEvent.PLAYER_JOINED, {
+          socket.broadcast.to(`world:${payload.worldId}`).emit(ServerEvent.PLAYER_JOINED, {
             player: {
               id: player.id,
               name: player.name,
-              position: player.position
+              position: { x: player.position.x, y: player.position.y }
             },
-            worldId: validated.worldId
+            worldId: payload.worldId
           });
 
         } catch (error) {
@@ -126,24 +128,28 @@ export class Server {
         }
       });
 
-      socket.on(ClientEvent.MOVE, (payload: C2SMovePayload) => {
+      socket.on(ClientEvent.MOVE, (payload: any) => {
         try {
-          const validated = movePayloadSchema.parse(payload);
+          const player = this.playerManager.getPlayer(payload.playerId);
           
-          const success = this.playerManager.movePlayer(validated.playerId, validated.position);
+          if (!player) {
+            socket.emit(ServerEvent.ERROR, {
+              code: 'PLAYER_NOT_FOUND',
+              message: 'Player not found'
+            });
+            return;
+          }
+
+          const newPos = Vec2D.from(payload.position);
+          const success = this.playerManager.movePlayer(payload.playerId, newPos);
           
-          if (success) {
-            const player = this.playerManager.getPlayer(validated.playerId);
-            if (player) {
-              const worldId = player.worldId || 'default';
-              
-              socket.broadcast.to(`world:${worldId}`).emit(ServerEvent.PLAYER_MOVED, {
-                playerId: validated.playerId,
-                position: validated.position,
-                worldId,
-                sequence: validated.sequence
-              });
-            }
+          if (success && player.worldId) {
+            socket.broadcast.to(`world:${player.worldId}`).emit(ServerEvent.PLAYER_MOVED, {
+              playerId: payload.playerId,
+              position: { x: newPos.x, y: newPos.y },
+              worldId: player.worldId,
+              sequence: payload.sequence
+            });
           }
         } catch (error) {
           socket.emit(ServerEvent.ERROR, {
@@ -154,10 +160,9 @@ export class Server {
         }
       });
 
-      socket.on(ClientEvent.CHAT, (payload: C2SChatPayload) => {
+      socket.on(ClientEvent.CHAT, (payload: any) => {
         try {
-          const validated = chatPayloadSchema.parse(payload);
-          const player = this.playerManager.getPlayer(validated.playerId);
+          const player = this.playerManager.getPlayer(payload.playerId);
           
           if (!player) {
             socket.emit(ServerEvent.ERROR, {
@@ -168,18 +173,17 @@ export class Server {
           }
 
           const messagePayload = {
-            playerId: validated.playerId,
+            playerId: payload.playerId,
             playerName: player.name,
-            message: validated.message,
-            channel: validated.channel,
+            message: payload.message,
+            channel: payload.channel,
             timestamp: Date.now()
           };
 
-          if (validated.channel === 'whisper' && validated.targetId) {
-            socket.to(validated.targetId).emit(ServerEvent.CHAT_MESSAGE, messagePayload);
-          } else {
-            const worldId = player.worldId || 'default';
-            this.io?.to(`world:${worldId}`).emit(ServerEvent.CHAT_MESSAGE, messagePayload);
+          if (payload.channel === 'whisper' && payload.targetId) {
+            socket.to(payload.targetId).emit(ServerEvent.CHAT_MESSAGE, messagePayload);
+          } else if (player.worldId) {
+            this.io?.to(`world:${player.worldId}`).emit(ServerEvent.CHAT_MESSAGE, messagePayload);
           }
         } catch (error) {
           socket.emit(ServerEvent.ERROR, {
@@ -190,66 +194,21 @@ export class Server {
         }
       });
 
-      socket.on(ClientEvent.INTERACT, (payload: C2SInteractPayload) => {
+      socket.on(ClientEvent.LEAVE_WORLD, (payload: any) => {
         try {
-          const validated = interactPayloadSchema.parse(payload);
+          socket.leave(`world:${payload.worldId}`);
           
-          const player = this.playerManager.getPlayer(validated.playerId);
-          if (!player) {
-            socket.emit(ServerEvent.ERROR, {
-              code: 'PLAYER_NOT_FOUND',
-              message: 'Player not found'
-            });
-            return;
-          }
-
-          const world = this.getWorld(player.worldId || 'default');
-          if (!world) {
-            socket.emit(ServerEvent.ERROR, {
-              code: 'WORLD_NOT_FOUND',
-              message: 'World not found'
-            });
-            return;
-          }
-
-          const target = world.getEntity(validated.targetId);
-          if (!target) {
-            socket.emit(ServerEvent.ERROR, {
-              code: 'TARGET_NOT_FOUND',
-              message: 'Target entity not found'
-            });
-            return;
-          }
-
-          socket.broadcast.to(`world:${player.worldId}`).emit('s2c:interaction', {
-            playerId: validated.playerId,
-            targetId: validated.targetId,
-            interactionType: validated.interactionType,
-            position: validated.position
+          socket.broadcast.to(`world:${payload.worldId}`).emit(ServerEvent.PLAYER_LEFT, {
+            playerId: payload.playerId,
+            worldId: payload.worldId
           });
 
-        } catch (error) {
-          socket.emit(ServerEvent.ERROR, {
-            code: 'INVALID_INTERACTION',
-            message: 'Invalid interaction payload',
-            details: error
-          });
-        }
-      });
-
-      socket.on(ClientEvent.LEAVE_WORLD, (payload: C2SLeaveWorldPayload) => {
-        try {
-          const validated = leaveWorldPayloadSchema.parse(payload);
-          
-          socket.leave(`world:${validated.worldId}`);
-          
-          socket.broadcast.to(`world:${validated.worldId}`).emit(ServerEvent.PLAYER_LEFT, {
-            playerId: validated.playerId,
-            worldId: validated.worldId
-          });
-
-          const player = this.playerManager.getPlayer(validated.playerId);
+          const player = this.playerManager.getPlayer(payload.playerId);
           if (player) {
+            const world = this.getWorld(payload.worldId);
+            if (world) {
+              world.removeEntity(payload.playerId);
+            }
             player.worldId = undefined;
           }
 
