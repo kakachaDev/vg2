@@ -3,7 +3,7 @@ export enum ClientEvent {
   LEAVE_WORLD = 'leave_world',
   MOVE = 'move',
   CHAT = 'chat',
-  INTERACT = 'interact'
+  INTERACT = 'interact',
 }
 
 export enum ServerEvent {
@@ -13,5 +13,5 @@ export enum ServerEvent {
   PLAYER_LEFT = 'player_left',
   PLAYER_MOVED = 'player_moved',
   CHAT_MESSAGE = 'chat_message',
-  ERROR = 'error'
+  ERROR = 'error',
 }

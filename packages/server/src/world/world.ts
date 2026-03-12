@@ -74,7 +74,7 @@ export class World {
 
   public getPlayers(): Player[] {
     return Array.from(this.entities.values()).filter(
-      (entity): entity is Player => entity.type === 'player'
+      (entity): entity is Player => entity.type === 'player',
     );
   }
 

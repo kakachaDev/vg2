@@ -1,300 +1,103 @@
 #!/bin/bash
 
-# Переписываем тест "should prevent moving through other players" с использованием события PLAYER_MOVED и улучшенной проверкой
-cat > packages/server/src/__tests__/movement-collision.test.ts.tmp << 'EOF'
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { Server } from '../core/server.js';
-import { io as Client } from 'socket.io-client';
-import { Vec2D, Player } from '@vg2/core';
-import { ClientEvent, ServerEvent } from '@vg2/shared';
+# 1. Исправляем collision-detector.ts: убираем ранний return для конечной точки и всегда проверяем путь
 
-describe('Movement with Collision Detection', () => {
-  let server: Server;
-  let clientSocket: any;
-  const PORT = 3002;
+cat > packages/server/src/world/collision-detector.ts << 'EOF'
+import { Vec2D } from '@vg2/core';
+import { World } from './world.js';
+import { Chunk } from './chunk.js';
 
-  beforeEach(async () => {
-    server = new Server();
-    await server.start(PORT);
+export class CollisionDetector {
+  constructor(private world: World) {}
 
-    clientSocket = Client(`http://localhost:${PORT}`, {
-      autoConnect: false,
-      transports: ['websocket']
-    });
-  });
+  public canMove(from: Vec2D, to: Vec2D, entityId: string): boolean {
+    const distance = from.distance(to);
 
-  afterEach(async () => {
-    if (clientSocket && clientSocket.connected) {
-      clientSocket.disconnect();
-    }
-    await server.stop();
-  });
-
-  it('should enforce speed limit', async () => {
-    const player = new Player('test-player', 'TestPlayer', new Vec2D(0, 0));
-    server.getPlayerManager().addPlayer(player);
-
-    await new Promise<void>((resolve) => {
-      clientSocket.connect();
-
-      clientSocket.on('connect', () => {
-        clientSocket.emit(ClientEvent.JOIN_WORLD, {
-          playerId: 'test-player',
-          worldId: 'default',
-          spawnPoint: { x: 0, y: 0 }
-        });
-
-        clientSocket.on(ServerEvent.WORLD_STATE, () => {
-          clientSocket.emit(ClientEvent.MOVE, {
-            playerId: 'test-player',
-            position: { x: 100, y: 0 },
-            sequence: 1
-          });
-
-          setTimeout(() => {
-            const updatedPlayer = server.getPlayerManager().getPlayer('test-player');
-            expect(updatedPlayer?.position.x).toBeLessThanOrEqual(5);
-            expect(updatedPlayer?.position.x).toBeGreaterThan(0);
-            resolve();
-          }, 50);
-        });
-      });
-    });
-  });
-
-  it('should prevent moving into solid tiles', async () => {
-    const player = new Player('test-player', 'TestPlayer', new Vec2D(0, 0));
-    server.getPlayerManager().addPlayer(player);
-
-    const world = server.getWorld('default');
-    if (world) {
-      const chunk = world.getChunk(0, 0);
-      chunk.setTile(1, 0, { type: 'wall', solid: true });
+    if (distance > 10) {
+      return false;
     }
 
-    await new Promise<void>((resolve) => {
-      clientSocket.connect();
+    const chunks = this.world.getChunksInRange(to.x, to.y, 1);
 
-      clientSocket.on('connect', () => {
-        clientSocket.emit(ClientEvent.JOIN_WORLD, {
-          playerId: 'test-player',
-          worldId: 'default',
-          spawnPoint: { x: 0, y: 0 }
-        });
+    for (const chunk of chunks) {
+      const localX = Math.floor(to.x - chunk.x * Chunk.SIZE);
+      const localY = Math.floor(to.y - chunk.y * Chunk.SIZE);
 
-        clientSocket.on(ServerEvent.WORLD_STATE, () => {
-          clientSocket.emit(ClientEvent.MOVE, {
-            playerId: 'test-player',
-            position: { x: 1.5, y: 0 },
-            sequence: 1
-          });
+      if (localX >= 0 && localX < Chunk.SIZE && localY >= 0 && localY < Chunk.SIZE) {
+        const tile = chunk.getTile(localX, localY);
+        if (tile && tile.solid) {
+          return false;
+        }
+      }
 
-          setTimeout(() => {
-            const updatedPlayer = server.getPlayerManager().getPlayer('test-player');
-            expect(updatedPlayer?.position.x).toBeLessThan(1);
-            resolve();
-          }, 50);
-        });
-      });
-    });
-  });
-
-  it('should prevent moving through other players', async () => {
-    const player1 = new Player('player1', 'Player 1', new Vec2D(0, 0));
-    const player2 = new Player('player2', 'Player 2', new Vec2D(2, 0));
-
-    server.getPlayerManager().addPlayer(player1);
-    server.getPlayerManager().addPlayer(player2);
-
-    const world = server.getWorld('default');
-    if (world) {
-      world.addEntity(player1);
-      world.addEntity(player2);
-      player1.worldId = 'default';
-      player2.worldId = 'default';
-    }
-
-    // Убедимся, что player2 действительно в мире
-    const worldPlayers = world?.getPlayers();
-    expect(worldPlayers?.length).toBe(2);
-
-    // Сбросим время последнего движения, чтобы избежать rate limit
-    (server.getPlayerManager() as any).lastMoveTimes.set('player1', Date.now() - 100);
-
-    await new Promise<void>((resolve, reject) => {
-      clientSocket.connect();
-
-      clientSocket.on('connect', () => {
-        clientSocket.emit(ClientEvent.JOIN_WORLD, {
-          playerId: 'player1',
-          worldId: 'default',
-          spawnPoint: { x: 0, y: 0 }
-        });
-      });
-
-      clientSocket.on(ServerEvent.WORLD_STATE, () => {
-        // Отправляем движение к позиции за player2
-        clientSocket.emit(ClientEvent.MOVE, {
-          playerId: 'player1',
-          position: { x: 3, y: 0 },
-          sequence: 1
-        });
-      });
-
-      // Ждем события PLAYER_MOVED
-      clientSocket.on(ServerEvent.PLAYER_MOVED, (data: any) => {
-        if (data.playerId === 'player1') {
-          const updatedPlayer = server.getPlayerManager().getPlayer('player1');
-          try {
-            expect(updatedPlayer?.position.x).toBeLessThan(2); // Не должен пройти через player2
-            resolve();
-          } catch (e) {
-            reject(e);
+      const entities = chunk.getAllEntities();
+      for (const entity of entities) {
+        if (entity.id !== entityId && entity.type === 'player') {
+          if (entity.position.distance(to) < 1.0) {
+            return false;
           }
         }
-      });
-
-      // Таймаут на случай, если событие не придет
-      setTimeout(() => {
-        reject(new Error('Timeout waiting for PLAYER_MOVED'));
-      }, 1000);
-    });
-  });
-
-  it('should reject out-of-order move sequences', async () => {
-    const player = new Player('test-player', 'TestPlayer', new Vec2D(0, 0));
-    server.getPlayerManager().addPlayer(player);
-
-    const world = server.getWorld('default');
-    if (world) {
-      world.addEntity(player);
-      player.worldId = 'default';
+      }
     }
 
-    (server.getPlayerManager() as any).lastMoveTimes.set('test-player', Date.now() - 100);
-    (server.getPlayerManager() as any).moveSequences.set('test-player', 0);
+    return true;
+  }
 
-    await new Promise<void>((resolve, reject) => {
-      clientSocket.connect();
+  public getValidMovePosition(from: Vec2D, to: Vec2D, entityId: string): Vec2D {
+    const direction = new Vec2D(to.x - from.x, to.y - from.y);
+    const distance = from.distance(to);
 
-      clientSocket.on('connect', () => {
-        clientSocket.emit(ClientEvent.JOIN_WORLD, {
-          playerId: 'test-player',
-          worldId: 'default',
-          spawnPoint: { x: 0, y: 0 }
-        });
-      });
+    if (distance < 0.1) return from;
 
-      clientSocket.on(ServerEvent.WORLD_STATE, () => {
-        let firstMoveProcessed = false;
+    const steps = Math.ceil(distance / 0.1);
+    let lastValidPos = from;
 
-        clientSocket.on(ServerEvent.PLAYER_MOVED, (data: any) => {
-          if (data.sequence === 2) {
-            firstMoveProcessed = true;
-          } else if (data.sequence === 1) {
-            reject(new Error('Second out-of-order move was accepted'));
-          }
-        });
+    for (let i = 1; i <= steps; i++) {
+      const t = i / steps;
+      const checkPos = new Vec2D(
+        from.x + direction.x * t,
+        from.y + direction.y * t
+      );
 
-        clientSocket.emit(ClientEvent.MOVE, {
-          playerId: 'test-player',
-          position: { x: 1, y: 0 },
-          sequence: 2
-        });
-
-        const interval = setInterval(() => {
-          if (firstMoveProcessed) {
-            clearInterval(interval);
-            clientSocket.emit(ClientEvent.MOVE, {
-              playerId: 'test-player',
-              position: { x: 2, y: 0 },
-              sequence: 1
-            });
-
-            setTimeout(() => {
-              resolve();
-            }, 100);
-          }
-        }, 10);
-      });
-
-      setTimeout(() => {
-        reject(new Error('Timeout in out-of-order test'));
-      }, 2000);
-    });
-  });
-
-  it('should handle many move requests without crashing', async () => {
-    const player = new Player('test-player', 'TestPlayer', new Vec2D(0, 0));
-    server.getPlayerManager().addPlayer(player);
-
-    const world = server.getWorld('default');
-    if (world) {
-      world.addEntity(player);
-      player.worldId = 'default';
+      if (this.canMove(from, checkPos, entityId)) {
+        lastValidPos = checkPos;
+      } else {
+        break;
+      }
     }
 
-    (server.getPlayerManager() as any).lastMoveTimes.set('test-player', Date.now() - 100);
-
-    await new Promise<void>((resolve, reject) => {
-      clientSocket.connect();
-
-      clientSocket.on('connect', () => {
-        clientSocket.emit(ClientEvent.JOIN_WORLD, {
-          playerId: 'test-player',
-          worldId: 'default',
-          spawnPoint: { x: 0, y: 0 }
-        });
-      });
-
-      clientSocket.on(ServerEvent.WORLD_STATE, () => {
-        let moveCount = 0;
-        const movesSent = 10;
-
-        clientSocket.on(ServerEvent.PLAYER_MOVED, () => {
-          moveCount++;
-        });
-
-        for (let i = 1; i <= movesSent; i++) {
-          setTimeout(() => {
-            clientSocket.emit(ClientEvent.MOVE, {
-              playerId: 'test-player',
-              position: { x: i, y: 0 },
-              sequence: i
-            });
-          }, i * 2);
-        }
-
-        setTimeout(() => {
-          try {
-            expect(server.getPlayerManager().getPlayer('test-player')).toBeDefined();
-            const finalPlayer = server.getPlayerManager().getPlayer('test-player');
-            expect(finalPlayer?.position.x).toBeGreaterThan(0);
-            resolve();
-          } catch (e) {
-            reject(e);
-          }
-        }, movesSent * 2 + 200);
-      });
-
-      clientSocket.on(ServerEvent.ERROR, () => {});
-    });
-  });
-});
+    return lastValidPos;
+  }
+}
 EOF
 
-# Заменяем старый файл новым
-mv packages/server/src/__tests__/movement-collision.test.ts.tmp packages/server/src/__tests__/movement-collision.test.ts
+# 2. Запускаем конкретный тест для проверки
+npm test -- src/__tests__/movement-collision.test.ts -t "should prevent moving through other players"
 
-# Обновляем PROGRESS.md
-cat >> PROGRESS.md << 'EOF'
-
-- [x] Исправлен тест "should prevent moving through other players": теперь ожидается событие PLAYER_MOVED и проверка позиции после обработки
+# 3. Если тест прошел, обновляем прогресс
+if [ $? -eq 0 ]; then
+  cat >> PROGRESS.md << 'EOF'
+- [x] Исправлен CollisionDetector.getValidMovePosition для проверки всего пути, а не только конечной точки
+- [x] Тест "should prevent moving through other players" теперь проходит
 EOF
 
-# Коммит
-git add .
-git commit -m "test: улучшен тест коллизии игроков с ожиданием события PLAYER_MOVED"
+  # Обновляем TODO.md (помечаем пункт как выполненный, хотя его там нет, добавим запись)
+  cat >> TODO.md << 'EOF'
+- [x] Исправлена логика коллизий при движении через других игроков (проверка всего пути)
+EOF
 
-# Запуск тестов
-npm test
+  # 4. Коммит
+  git add packages/server/src/world/collision-detector.ts PROGRESS.md TODO.md
+  git commit -m "fix: check entire path for collisions, not just destination
+
+- getValidMovePosition now always iterates along the path to find last valid position
+- Prevents moving through other players even if destination is free
+- Fixes test 'should prevent moving through other players'"
+
+  # 5. Запускаем полную проверку
+  npm run typecheck
+  npm test
+else
+  echo "Тест все еще падает, требуется дополнительная диагностика"
+  exit 1
+fi

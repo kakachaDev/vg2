@@ -3,12 +3,14 @@
 ## Socket.IO Implementation Tests
 
 ### ✅ Validators
+
 - Vec2D validation
 - Move payload validation
 - Chat payload validation
 - Join world payload validation
 
 ### ✅ Socket Connection
+
 - Client connection handling
 - Player joining world
 - Player movement
@@ -17,10 +19,12 @@
 - Invalid payload validation
 
 ### ✅ Movement with Collision
+
 - Movement speed validation
 - Solid tile collision prevention
 
 ### ✅ Shared Types
+
 - Event enum exports
 - Payload type definitions
 

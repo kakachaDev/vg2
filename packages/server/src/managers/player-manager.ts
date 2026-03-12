@@ -40,17 +40,27 @@ export class PlayerManager {
   }
 
   public movePlayer(playerId: string, newPosition: Vec2D): boolean;
-  public movePlayer(playerId: string, newPosition: Vec2D, sequence: number): {
+  public movePlayer(
+    playerId: string,
+    newPosition: Vec2D,
+    sequence: number,
+  ): {
     success: boolean;
     authorizedPosition: Vec2D;
     sequence: number;
   };
 
-  public movePlayer(playerId: string, newPosition: Vec2D, sequence?: number): boolean | {
-    success: boolean;
-    authorizedPosition: Vec2D;
-    sequence: number;
-  } {
+  public movePlayer(
+    playerId: string,
+    newPosition: Vec2D,
+    sequence?: number,
+  ):
+    | boolean
+    | {
+        success: boolean;
+        authorizedPosition: Vec2D;
+        sequence: number;
+      } {
     const player = this.players.get(playerId);
     if (!player) {
       if (sequence !== undefined) {
@@ -67,7 +77,7 @@ export class PlayerManager {
         return {
           success: false,
           authorizedPosition: player.position,
-          sequence: lastSequence
+          sequence: lastSequence,
         };
       }
     }
@@ -78,7 +88,7 @@ export class PlayerManager {
         return {
           success: false,
           authorizedPosition: player.position,
-          sequence: this.moveSequences.get(playerId) || 0
+          sequence: this.moveSequences.get(playerId) || 0,
         };
       }
       return false;
@@ -90,17 +100,11 @@ export class PlayerManager {
 
     let finalPosition = newPosition;
     if (distance > maxSpeed) {
-      const direction = new Vec2D(
-        newPosition.x - oldPosition.x,
-        newPosition.y - oldPosition.y
-      );
-      const normalizedDir = new Vec2D(
-        direction.x / distance,
-        direction.y / distance
-      );
+      const direction = new Vec2D(newPosition.x - oldPosition.x, newPosition.y - oldPosition.y);
+      const normalizedDir = new Vec2D(direction.x / distance, direction.y / distance);
       finalPosition = new Vec2D(
         oldPosition.x + normalizedDir.x * maxSpeed,
-        oldPosition.y + normalizedDir.y * maxSpeed
+        oldPosition.y + normalizedDir.y * maxSpeed,
       );
     }
 
@@ -113,7 +117,7 @@ export class PlayerManager {
         authorizedPosition = collisionDetector.getValidMovePosition(
           oldPosition,
           finalPosition,
-          playerId
+          playerId,
         );
       }
     }
@@ -139,10 +143,10 @@ export class PlayerManager {
       return {
         success: moved,
         authorizedPosition: player.position,
-        sequence: this.moveSequences.get(playerId) || 0
+        sequence: this.moveSequences.get(playerId) || 0,
       };
     }
-    
+
     return moved;
   }
 

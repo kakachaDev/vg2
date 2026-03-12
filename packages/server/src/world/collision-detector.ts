@@ -49,10 +49,7 @@ export class CollisionDetector {
 
     for (let i = 1; i <= steps; i++) {
       const t = i / steps;
-      const checkPos = new Vec2D(
-        from.x + direction.x * t,
-        from.y + direction.y * t
-      );
+      const checkPos = new Vec2D(from.x + direction.x * t, from.y + direction.y * t);
 
       if (this.canMove(from, checkPos, entityId)) {
         lastValidPos = checkPos;

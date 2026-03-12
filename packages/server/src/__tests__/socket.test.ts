@@ -15,7 +15,7 @@ describe('Socket.IO Server', () => {
 
     clientSocket = Client(`http://localhost:${PORT}`, {
       autoConnect: false,
-      transports: ['websocket']
+      transports: ['websocket'],
     });
   });
 
@@ -47,7 +47,7 @@ describe('Socket.IO Server', () => {
         clientSocket.emit(ClientEvent.JOIN_WORLD, {
           playerId: 'test-player',
           worldId: 'default',
-          spawnPoint: { x: 0, y: 0 }
+          spawnPoint: { x: 0, y: 0 },
         });
       });
 
@@ -78,7 +78,7 @@ describe('Socket.IO Server', () => {
       clientSocket.on('connect', () => {
         clientSocket.emit(ClientEvent.JOIN_WORLD, {
           playerId: 'test-player',
-          worldId: 'default'
+          worldId: 'default',
         });
       });
 
@@ -88,7 +88,7 @@ describe('Socket.IO Server', () => {
           clientSocket.emit(ClientEvent.MOVE, {
             playerId: 'test-player',
             position: { x: 3, y: 3 },
-            sequence: 1
+            sequence: 1,
           });
 
           setTimeout(() => {
@@ -120,7 +120,7 @@ describe('Socket.IO Server', () => {
       clientSocket.on('connect', () => {
         clientSocket.emit(ClientEvent.JOIN_WORLD, {
           playerId: 'test-player',
-          worldId: 'default'
+          worldId: 'default',
         });
 
         clientSocket.on(ServerEvent.CHAT_MESSAGE, (data: any) => {
@@ -134,7 +134,7 @@ describe('Socket.IO Server', () => {
           clientSocket.emit(ClientEvent.CHAT, {
             playerId: 'test-player',
             message: 'Hello world',
-            channel: 'global'
+            channel: 'global',
           });
         }, 100);
       });
@@ -151,13 +151,13 @@ describe('Socket.IO Server', () => {
       clientSocket.on('connect', () => {
         clientSocket.emit(ClientEvent.JOIN_WORLD, {
           playerId: 'test-player',
-          worldId: 'default'
+          worldId: 'default',
         });
 
         setTimeout(() => {
           clientSocket.emit(ClientEvent.LEAVE_WORLD, {
             playerId: 'test-player',
-            worldId: 'default'
+            worldId: 'default',
           });
           resolve();
         }, 200);
@@ -173,7 +173,7 @@ describe('Socket.IO Server', () => {
         clientSocket.emit(ClientEvent.MOVE, {
           playerId: 'non-existent-player',
           position: { x: 10, y: 10 },
-          sequence: 1
+          sequence: 1,
         });
       });
 

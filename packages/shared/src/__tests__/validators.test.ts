@@ -5,7 +5,7 @@ import {
   chatPayloadSchema,
   joinWorldPayloadSchema,
   leaveWorldPayloadSchema,
-  interactPayloadSchema
+  interactPayloadSchema,
 } from '../validators.js';
 
 describe('Validators', () => {
@@ -21,7 +21,7 @@ describe('Validators', () => {
     const valid = {
       playerId: 'test-player',
       position: { x: 10, y: 20 },
-      sequence: 1
+      sequence: 1,
     };
     expect(movePayloadSchema.parse(valid)).toEqual(valid);
 
@@ -36,7 +36,7 @@ describe('Validators', () => {
     const valid = {
       playerId: 'test-player',
       message: 'Hello world',
-      channel: 'global'
+      channel: 'global',
     };
     expect(chatPayloadSchema.parse(valid)).toEqual(valid);
 
@@ -44,7 +44,7 @@ describe('Validators', () => {
       playerId: 'test-player',
       message: 'Hi',
       channel: 'whisper',
-      targetId: 'target-player'
+      targetId: 'target-player',
     };
     expect(chatPayloadSchema.parse(validWhisper)).toEqual(validWhisper);
 
@@ -56,13 +56,13 @@ describe('Validators', () => {
     const valid = {
       playerId: 'test-player',
       worldId: 'default',
-      spawnPoint: { x: 0, y: 0 }
+      spawnPoint: { x: 0, y: 0 },
     };
     expect(joinWorldPayloadSchema.parse(valid)).toEqual(valid);
 
     const validWithoutSpawn = {
       playerId: 'test-player',
-      worldId: 'default'
+      worldId: 'default',
     };
     expect(joinWorldPayloadSchema.parse(validWithoutSpawn)).toEqual(validWithoutSpawn);
   });
@@ -70,7 +70,7 @@ describe('Validators', () => {
   it('should validate leave world payload', () => {
     const valid = {
       playerId: 'test-player',
-      worldId: 'default'
+      worldId: 'default',
     };
     expect(leaveWorldPayloadSchema.parse(valid)).toEqual(valid);
   });
@@ -80,7 +80,7 @@ describe('Validators', () => {
       playerId: 'test-player',
       targetId: 'target-entity',
       interactionType: 'attack',
-      position: { x: 10, y: 20 }
+      position: { x: 10, y: 20 },
     };
     expect(interactPayloadSchema.parse(valid)).toEqual(valid);
   });

@@ -15,7 +15,7 @@ describe('Movement with Collision Detection', () => {
 
     clientSocket = Client(`http://localhost:${PORT}`, {
       autoConnect: false,
-      transports: ['websocket']
+      transports: ['websocket'],
     });
   });
 
@@ -37,14 +37,14 @@ describe('Movement with Collision Detection', () => {
         clientSocket.emit(ClientEvent.JOIN_WORLD, {
           playerId: 'test-player',
           worldId: 'default',
-          spawnPoint: { x: 0, y: 0 }
+          spawnPoint: { x: 0, y: 0 },
         });
 
         clientSocket.on(ServerEvent.WORLD_STATE, () => {
           clientSocket.emit(ClientEvent.MOVE, {
             playerId: 'test-player',
             position: { x: 100, y: 0 },
-            sequence: 1
+            sequence: 1,
           });
 
           setTimeout(() => {
@@ -75,14 +75,14 @@ describe('Movement with Collision Detection', () => {
         clientSocket.emit(ClientEvent.JOIN_WORLD, {
           playerId: 'test-player',
           worldId: 'default',
-          spawnPoint: { x: 0, y: 0 }
+          spawnPoint: { x: 0, y: 0 },
         });
 
         clientSocket.on(ServerEvent.WORLD_STATE, () => {
           clientSocket.emit(ClientEvent.MOVE, {
             playerId: 'test-player',
             position: { x: 1.5, y: 0 },
-            sequence: 1
+            sequence: 1,
           });
 
           setTimeout(() => {
@@ -124,7 +124,7 @@ describe('Movement with Collision Detection', () => {
         clientSocket.emit(ClientEvent.JOIN_WORLD, {
           playerId: 'player1',
           worldId: 'default',
-          spawnPoint: { x: 0, y: 0 }
+          spawnPoint: { x: 0, y: 0 },
         });
       });
 
@@ -133,7 +133,7 @@ describe('Movement with Collision Detection', () => {
         clientSocket.emit(ClientEvent.MOVE, {
           playerId: 'player1',
           position: { x: 3, y: 0 },
-          sequence: 1
+          sequence: 1,
         });
       });
 
@@ -177,7 +177,7 @@ describe('Movement with Collision Detection', () => {
         clientSocket.emit(ClientEvent.JOIN_WORLD, {
           playerId: 'test-player',
           worldId: 'default',
-          spawnPoint: { x: 0, y: 0 }
+          spawnPoint: { x: 0, y: 0 },
         });
       });
 
@@ -195,7 +195,7 @@ describe('Movement with Collision Detection', () => {
         clientSocket.emit(ClientEvent.MOVE, {
           playerId: 'test-player',
           position: { x: 1, y: 0 },
-          sequence: 2
+          sequence: 2,
         });
 
         const interval = setInterval(() => {
@@ -204,7 +204,7 @@ describe('Movement with Collision Detection', () => {
             clientSocket.emit(ClientEvent.MOVE, {
               playerId: 'test-player',
               position: { x: 2, y: 0 },
-              sequence: 1
+              sequence: 1,
             });
 
             setTimeout(() => {
@@ -239,7 +239,7 @@ describe('Movement with Collision Detection', () => {
         clientSocket.emit(ClientEvent.JOIN_WORLD, {
           playerId: 'test-player',
           worldId: 'default',
-          spawnPoint: { x: 0, y: 0 }
+          spawnPoint: { x: 0, y: 0 },
         });
       });
 
@@ -256,21 +256,24 @@ describe('Movement with Collision Detection', () => {
             clientSocket.emit(ClientEvent.MOVE, {
               playerId: 'test-player',
               position: { x: i, y: 0 },
-              sequence: i
+              sequence: i,
             });
           }, i * 2);
         }
 
-        setTimeout(() => {
-          try {
-            expect(server.getPlayerManager().getPlayer('test-player')).toBeDefined();
-            const finalPlayer = server.getPlayerManager().getPlayer('test-player');
-            expect(finalPlayer?.position.x).toBeGreaterThan(0);
-            resolve();
-          } catch (e) {
-            reject(e);
-          }
-        }, movesSent * 2 + 200);
+        setTimeout(
+          () => {
+            try {
+              expect(server.getPlayerManager().getPlayer('test-player')).toBeDefined();
+              const finalPlayer = server.getPlayerManager().getPlayer('test-player');
+              expect(finalPlayer?.position.x).toBeGreaterThan(0);
+              resolve();
+            } catch (e) {
+              reject(e);
+            }
+          },
+          movesSent * 2 + 200,
+        );
       });
 
       clientSocket.on(ServerEvent.ERROR, () => {});

@@ -5,7 +5,7 @@ export enum ClientEvent {
   INTERACT = 'c2s:interact',
   CHAT = 'c2s:chat',
   JOIN_WORLD = 'c2s:join_world',
-  LEAVE_WORLD = 'c2s:leave_world'
+  LEAVE_WORLD = 'c2s:leave_world',
 }
 
 export enum ServerEvent {
@@ -15,7 +15,7 @@ export enum ServerEvent {
   PLAYER_MOVED = 's2c:player_moved',
   CHAT_MESSAGE = 's2c:chat_message',
   ERROR = 's2c:error',
-  WORLD_STATE = 's2c:world_state'
+  WORLD_STATE = 's2c:world_state',
 }
 
 export interface C2SMovePayload {

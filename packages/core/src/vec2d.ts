@@ -1,7 +1,7 @@
 export class Vec2D {
   constructor(
     public x: number,
-    public y: number
+    public y: number,
   ) {}
 
   static from(obj: { x: number; y: number }): Vec2D {
@@ -25,7 +25,6 @@ export class Vec2D {
     const dy = this.y - to.y;
     return Math.sqrt(dx * dx + dy * dy);
   }
-
 
   clone(): Vec2D {
     return new Vec2D(this.x, this.y);

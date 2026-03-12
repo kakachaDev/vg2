@@ -8,7 +8,7 @@ import {
   movePayloadSchema,
   joinWorldPayloadSchema,
   leaveWorldPayloadSchema,
-  chatPayloadSchema
+  chatPayloadSchema,
 } from '@vg2/shared';
 import type { C2SMovePayload } from '@vg2/shared';
 
@@ -38,9 +38,9 @@ export class Server {
     this.io = new SocketServer(this.httpServer, {
       cors: {
         origin: '*',
-        methods: ['GET', 'POST']
+        methods: ['GET', 'POST'],
       },
-      transports: ['websocket']
+      transports: ['websocket'],
     });
 
     this.setupSocketHandlers();
@@ -70,7 +70,7 @@ export class Server {
             player = new Player(
               payload.playerId,
               `Player-${payload.playerId.substring(0, 4)}`,
-              payload.spawnPoint ? Vec2D.from(payload.spawnPoint) : new Vec2D(0, 0)
+              payload.spawnPoint ? Vec2D.from(payload.spawnPoint) : new Vec2D(0, 0),
             );
             this.playerManager.addPlayer(player);
           }
@@ -83,11 +83,7 @@ export class Server {
 
           const world = this.getWorld(payload.worldId);
           if (world) {
-            const nearbyChunks = world.getChunksInRange(
-              player.position.x,
-              player.position.y,
-              2
-            );
+            const nearbyChunks = world.getChunksInRange(player.position.x, player.position.y, 2);
 
             for (const chunk of nearbyChunks) {
               socket.emit(ServerEvent.CHUNK_UPDATE, {
@@ -97,11 +93,11 @@ export class Server {
                   const [x, y] = key.split(',').map(Number);
                   return { x, y, type: tile.type, solid: tile.solid };
                 }),
-                entities: chunk.getAllEntities().map(e => ({
+                entities: chunk.getAllEntities().map((e) => ({
                   id: e.id,
                   type: e.type,
-                  position: { x: e.position.x, y: e.position.y }
-                }))
+                  position: { x: e.position.x, y: e.position.y },
+                })),
               });
             }
 
@@ -109,7 +105,7 @@ export class Server {
               worldId: world.id,
               worldName: world.name,
               players: world.getPlayers().length,
-              chunks: nearbyChunks.map(c => ({ x: c.x, y: c.y }))
+              chunks: nearbyChunks.map((c) => ({ x: c.x, y: c.y })),
             });
           }
 
@@ -117,25 +113,24 @@ export class Server {
             player: {
               id: player.id,
               name: player.name,
-              position: { x: player.position.x, y: player.position.y }
+              position: { x: player.position.x, y: player.position.y },
             },
-            worldId: payload.worldId
+            worldId: payload.worldId,
           });
 
           socket.broadcast.to(`world:${payload.worldId}`).emit(ServerEvent.PLAYER_JOINED, {
             player: {
               id: player.id,
               name: player.name,
-              position: { x: player.position.x, y: player.position.y }
+              position: { x: player.position.x, y: player.position.y },
             },
-            worldId: payload.worldId
+            worldId: payload.worldId,
           });
-
         } catch (error) {
           socket.emit(ServerEvent.ERROR, {
             code: 'INVALID_PAYLOAD',
             message: 'Invalid join world payload',
-            details: error
+            details: error,
           });
         }
       });
@@ -149,41 +144,39 @@ export class Server {
           if (!player) {
             socket.emit(ServerEvent.ERROR, {
               code: 'PLAYER_NOT_FOUND',
-              message: 'Player not found'
+              message: 'Player not found',
             });
             return;
           }
 
           const newPos = Vec2D.from(payload.position);
-          const result = this.playerManager.movePlayer(
-            payload.playerId,
-            newPos,
-            payload.sequence
-          );
+          const result = this.playerManager.movePlayer(payload.playerId, newPos, payload.sequence);
 
           if (result.success && player.worldId) {
             const moveEvent = {
               playerId: payload.playerId,
               position: { x: result.authorizedPosition.x, y: result.authorizedPosition.y },
               worldId: player.worldId,
-              sequence: result.sequence
+              sequence: result.sequence,
             };
 
-            socket.broadcast.to(`world:${player.worldId}`).emit(ServerEvent.PLAYER_MOVED, moveEvent);
+            socket.broadcast
+              .to(`world:${player.worldId}`)
+              .emit(ServerEvent.PLAYER_MOVED, moveEvent);
             socket.emit(ServerEvent.PLAYER_MOVED, moveEvent);
           } else {
             socket.emit(ServerEvent.PLAYER_MOVED, {
               playerId: payload.playerId,
               position: { x: result.authorizedPosition.x, y: result.authorizedPosition.y },
               worldId: player.worldId,
-              sequence: result.sequence
+              sequence: result.sequence,
             });
           }
         } catch (error) {
           socket.emit(ServerEvent.ERROR, {
             code: 'INVALID_MOVE',
             message: 'Invalid move payload',
-            details: error
+            details: error,
           });
         }
       });
@@ -197,7 +190,7 @@ export class Server {
           if (!player) {
             socket.emit(ServerEvent.ERROR, {
               code: 'PLAYER_NOT_FOUND',
-              message: 'Player not found'
+              message: 'Player not found',
             });
             return;
           }
@@ -207,7 +200,7 @@ export class Server {
             playerName: player.name,
             message: payload.message,
             channel: payload.channel,
-            timestamp: Date.now()
+            timestamp: Date.now(),
           };
 
           if (payload.channel === 'whisper' && payload.targetId) {
@@ -222,7 +215,7 @@ export class Server {
           socket.emit(ServerEvent.ERROR, {
             code: 'INVALID_CHAT',
             message: 'Invalid chat payload',
-            details: error
+            details: error,
           });
         }
       });
@@ -235,7 +228,7 @@ export class Server {
 
           socket.broadcast.to(`world:${payload.worldId}`).emit(ServerEvent.PLAYER_LEFT, {
             playerId: payload.playerId,
-            worldId: payload.worldId
+            worldId: payload.worldId,
           });
 
           const player = this.playerManager.getPlayer(payload.playerId);
@@ -246,12 +239,11 @@ export class Server {
             }
             player.worldId = undefined;
           }
-
         } catch (error) {
           socket.emit(ServerEvent.ERROR, {
             code: 'INVALID_LEAVE',
             message: 'Invalid leave world payload',
-            details: error
+            details: error,
           });
         }
       });
@@ -264,7 +256,7 @@ export class Server {
             if (player.worldId) {
               socket.broadcast.to(`world:${player.worldId}`).emit(ServerEvent.PLAYER_LEFT, {
                 playerId: player.id,
-                worldId: player.worldId
+                worldId: player.worldId,
               });
             }
             this.playerManager.removePlayer(player.id);
