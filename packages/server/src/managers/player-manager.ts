@@ -39,39 +39,55 @@ export class PlayerManager {
     return Array.from(this.players.values());
   }
 
+  public movePlayer(playerId: string, newPosition: Vec2D): boolean;
   public movePlayer(playerId: string, newPosition: Vec2D, sequence: number): {
+    success: boolean;
+    authorizedPosition: Vec2D;
+    sequence: number;
+  };
+  
+  public movePlayer(playerId: string, newPosition: Vec2D, sequence?: number): boolean | {
     success: boolean;
     authorizedPosition: Vec2D;
     sequence: number;
   } {
     const player = this.players.get(playerId);
     if (!player) {
-      return { success: false, authorizedPosition: new Vec2D(0, 0), sequence: 0 };
+      if (sequence !== undefined) {
+        return { success: false, authorizedPosition: new Vec2D(0, 0), sequence: 0 };
+      }
+      return false;
+    }
+
+    const now = Date.now();
+
+    if (sequence !== undefined) {
+      const lastSequence = this.moveSequences.get(playerId) || 0;
+      if (sequence <= lastSequence) {
+        return {
+          success: false,
+          authorizedPosition: player.position,
+          sequence: lastSequence
+        };
+      }
     }
 
     const lastMove = this.lastMoveTimes.get(playerId) || 0;
-    const now = Date.now();
-    
     if (now - lastMove < 16) {
-      return { 
-        success: false, 
-        authorizedPosition: player.position, 
-        sequence: this.moveSequences.get(playerId) || 0 
-      };
-    }
-
-    const lastSequence = this.moveSequences.get(playerId) || 0;
-    if (sequence <= lastSequence) {
-      return { 
-        success: false, 
-        authorizedPosition: player.position, 
-        sequence: lastSequence 
-      };
+      if (sequence !== undefined) {
+        return {
+          success: false,
+          authorizedPosition: player.position,
+          sequence: this.moveSequences.get(playerId) || 0
+        };
+      }
+      return false;
     }
 
     const distance = player.position.distance(newPosition);
     const maxSpeed = 5;
-    
+
+    let finalPosition = newPosition;
     if (distance > maxSpeed) {
       const direction = new Vec2D(
         newPosition.x - player.position.x,
@@ -81,21 +97,21 @@ export class PlayerManager {
         direction.x / distance,
         direction.y / distance
       );
-      newPosition = new Vec2D(
+      finalPosition = new Vec2D(
         player.position.x + normalizedDir.x * maxSpeed,
         player.position.y + normalizedDir.y * maxSpeed
       );
     }
 
     let authorizedPosition = player.position;
-    
+
     if (player.worldId) {
       const world = this.server.getWorld(player.worldId);
       if (world) {
         const collisionDetector = new CollisionDetector(world);
         authorizedPosition = collisionDetector.getValidMovePosition(
           player.position,
-          newPosition,
+          finalPosition,
           playerId
         );
       }
@@ -104,7 +120,9 @@ export class PlayerManager {
     if (!authorizedPosition.eq(player.position)) {
       player.position = authorizedPosition;
       this.lastMoveTimes.set(playerId, now);
-      this.moveSequences.set(playerId, sequence);
+      if (sequence !== undefined) {
+        this.moveSequences.set(playerId, sequence);
+      }
 
       if (player.worldId) {
         const world = this.server.getWorld(player.worldId);
@@ -114,11 +132,14 @@ export class PlayerManager {
       }
     }
 
-    return {
-      success: true,
-      authorizedPosition: player.position,
-      sequence: this.moveSequences.get(playerId) || 0
-    };
+    if (sequence !== undefined) {
+      return {
+        success: true,
+        authorizedPosition: player.position,
+        sequence: this.moveSequences.get(playerId) || 0
+      };
+    }
+    return true;
   }
 
   public getPlayersInWorld(worldId: string): Player[] {
