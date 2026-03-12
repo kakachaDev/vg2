@@ -26,6 +26,10 @@ export class Vec2D {
     return Math.sqrt(dx * dx + dy * dy);
   }
 
+
+  clone(): Vec2D {
+    return new Vec2D(this.x, this.y);
+  }
   toString(): string {
     return `Vec2D(${this.x}, ${this.y})`;
   }
