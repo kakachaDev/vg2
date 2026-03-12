@@ -4,13 +4,13 @@ import { World } from '../world/world.js';
 import { PlayerManager } from '../managers/player-manager.js';
 import { ClientEvent, ServerEvent } from '@vg2/shared';
 import { Vec2D, Player } from '@vg2/core';
-import { 
-  C2SMovePayloadSchema, 
+import {
+  C2SMovePayloadSchema,
   C2SJoinWorldPayloadSchema,
   C2SLeaveWorldPayloadSchema,
-  C2SChatPayloadSchema,
-  C2SMovePayload
+  C2SChatPayloadSchema
 } from '@vg2/shared';
+import type { C2SMovePayload } from '@vg2/shared';
 
 export class Server {
   private worlds: Map<string, World> = new Map();
@@ -63,9 +63,9 @@ export class Server {
       socket.on(ClientEvent.JOIN_WORLD, async (data: unknown) => {
         try {
           const payload = C2SJoinWorldPayloadSchema.parse(data);
-          
+
           let player = this.playerManager.getPlayer(payload.playerId);
-          
+
           if (!player) {
             player = new Player(
               payload.playerId,
@@ -78,7 +78,7 @@ export class Server {
           this.playerManager.updatePlayerSession(payload.playerId, socket.id);
 
           socket.join(`world:${payload.worldId}`);
-          
+
           this.playerManager.updatePlayerWorld(payload.playerId, payload.worldId);
 
           const world = this.getWorld(payload.worldId);
@@ -143,7 +143,7 @@ export class Server {
       socket.on(ClientEvent.MOVE, (data: unknown) => {
         try {
           const payload = C2SMovePayloadSchema.parse(data) as C2SMovePayload;
-          
+
           const player = this.playerManager.getPlayer(payload.playerId);
 
           if (!player) {
@@ -156,8 +156,8 @@ export class Server {
 
           const newPos = Vec2D.from(payload.position);
           const result = this.playerManager.movePlayer(
-            payload.playerId, 
-            newPos, 
+            payload.playerId,
+            newPos,
             payload.sequence
           );
 
@@ -191,7 +191,7 @@ export class Server {
       socket.on(ClientEvent.CHAT, (data: unknown) => {
         try {
           const payload = C2SChatPayloadSchema.parse(data);
-          
+
           const player = this.playerManager.getPlayer(payload.playerId);
 
           if (!player) {
@@ -230,7 +230,7 @@ export class Server {
       socket.on(ClientEvent.LEAVE_WORLD, (data: unknown) => {
         try {
           const payload = C2SLeaveWorldPayloadSchema.parse(data);
-          
+
           socket.leave(`world:${payload.worldId}`);
 
           socket.broadcast.to(`world:${payload.worldId}`).emit(ServerEvent.PLAYER_LEFT, {
@@ -258,7 +258,7 @@ export class Server {
 
       socket.on('disconnect', () => {
         console.log(`Client disconnected: ${socket.id}`);
-        
+
         for (const player of this.playerManager.getAllPlayers()) {
           if (player.sessionId === socket.id) {
             if (player.worldId) {

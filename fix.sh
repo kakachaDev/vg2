@@ -80,4 +80,8 @@ git commit -m "feat: выполнена задача Х"
 # 5. Run tests. , coverage, pretty
 ...
 ```
+=================
+на данный момент при выполнении сборки и запуске тестов происходит следующее:
+
 EOF
+npm run build && npm run test
