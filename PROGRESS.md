@@ -106,3 +106,7 @@
 - [x] Исправлен синтаксис в socket.test.ts
 - [x] Добавлены задержки в тесты для избежания rate limit (player-manager, integration)
 - [x] Улучшены тесты out-of-order и rate limiting
+
+- [x] Восстановлен movement-collision.test.ts с корректным синтаксисом
+- [x] Исправлен player-manager.test.ts: сброс lastMoveTime и правильная проверка moved
+- [x] Исправлен socket.test.ts: сброс lastMoveTime и увеличены задержки

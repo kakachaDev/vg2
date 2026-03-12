@@ -152,13 +152,10 @@ describe('Movement with Collision Detection', () => {
         });
 
         clientSocket.on(ServerEvent.WORLD_STATE, () => {
-          setTimeout(() => {
-          // Подписываемся на PLAYER_MOVED до отправки первого движения
           clientSocket.on(ServerEvent.PLAYER_MOVED, (data: any) => {
             receivedSequence = data.sequence;
           });
 
-          // Отправляем первое движение с sequence 2
           clientSocket.emit(ClientEvent.MOVE, {
             playerId: 'test-player',
             position: { x: 1, y: 0 },
@@ -166,7 +163,6 @@ describe('Movement with Collision Detection', () => {
           });
 
           setTimeout(() => {
-            // Отправляем второе движение с sequence 1 (out of order)
             clientSocket.emit(ClientEvent.MOVE, {
               playerId: 'test-player',
               position: { x: 2, y: 0 },
@@ -198,10 +194,8 @@ describe('Movement with Collision Detection', () => {
         });
 
         clientSocket.on(ServerEvent.WORLD_STATE, () => {
-          const startTime = Date.now();
           let moveCount = 0;
 
-          // Подписываемся на PLAYER_MOVED до отправки движений
           clientSocket.on(ServerEvent.PLAYER_MOVED, () => {
             moveCount++;
           });
@@ -217,7 +211,6 @@ describe('Movement with Collision Detection', () => {
           }
 
           setTimeout(() => {
-            const elapsed = Date.now() - startTime;
             expect(moveCount).toBeLessThan(20);
             resolve();
           }, 200);

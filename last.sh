@@ -1,8 +1,316 @@
 #!/bin/bash
 
-# 1. Восстанавливаем socket.test.ts с правильным синтаксисом
+# 1. Восстанавливаем movement-collision.test.ts из предыдущей рабочей версии
+cat > packages/server/src/__tests__/movement-collision.test.ts << 'EOF'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { Server } from '../core/server.js';
+import { io as Client } from 'socket.io-client';
+import { Vec2D, Player } from '@vg2/core';
+import { ClientEvent, ServerEvent } from '@vg2/shared';
+
+describe('Movement with Collision Detection', () => {
+  let server: Server;
+  let clientSocket: any;
+  const PORT = 3002;
+
+  beforeEach(async () => {
+    server = new Server();
+    await server.start(PORT);
+
+    clientSocket = Client(`http://localhost:${PORT}`, {
+      autoConnect: false,
+      transports: ['websocket']
+    });
+  });
+
+  afterEach(async () => {
+    if (clientSocket && clientSocket.connected) {
+      clientSocket.disconnect();
+    }
+    await server.stop();
+  });
+
+  it('should enforce speed limit', async () => {
+    const player = new Player('test-player', 'TestPlayer', new Vec2D(0, 0));
+    server.getPlayerManager().addPlayer(player);
+
+    await new Promise<void>((resolve) => {
+      clientSocket.connect();
+
+      clientSocket.on('connect', () => {
+        clientSocket.emit(ClientEvent.JOIN_WORLD, {
+          playerId: 'test-player',
+          worldId: 'default',
+          spawnPoint: { x: 0, y: 0 }
+        });
+
+        clientSocket.on(ServerEvent.WORLD_STATE, () => {
+          clientSocket.emit(ClientEvent.MOVE, {
+            playerId: 'test-player',
+            position: { x: 100, y: 0 },
+            sequence: 1
+          });
+
+          setTimeout(() => {
+            const updatedPlayer = server.getPlayerManager().getPlayer('test-player');
+            expect(updatedPlayer?.position.x).toBeLessThanOrEqual(5);
+            expect(updatedPlayer?.position.x).toBeGreaterThan(0);
+            resolve();
+          }, 50);
+        });
+      });
+    });
+  });
+
+  it('should prevent moving into solid tiles', async () => {
+    const player = new Player('test-player', 'TestPlayer', new Vec2D(0, 0));
+    server.getPlayerManager().addPlayer(player);
+
+    const world = server.getWorld('default');
+    if (world) {
+      const chunk = world.getChunk(0, 0);
+      chunk.setTile(1, 0, { type: 'wall', solid: true });
+    }
+
+    await new Promise<void>((resolve) => {
+      clientSocket.connect();
+
+      clientSocket.on('connect', () => {
+        clientSocket.emit(ClientEvent.JOIN_WORLD, {
+          playerId: 'test-player',
+          worldId: 'default',
+          spawnPoint: { x: 0, y: 0 }
+        });
+
+        clientSocket.on(ServerEvent.WORLD_STATE, () => {
+          clientSocket.emit(ClientEvent.MOVE, {
+            playerId: 'test-player',
+            position: { x: 1.5, y: 0 },
+            sequence: 1
+          });
+
+          setTimeout(() => {
+            const updatedPlayer = server.getPlayerManager().getPlayer('test-player');
+            expect(updatedPlayer?.position.x).toBeLessThan(1);
+            resolve();
+          }, 50);
+        });
+      });
+    });
+  });
+
+  it('should prevent moving through other players', async () => {
+    const player1 = new Player('player1', 'Player 1', new Vec2D(0, 0));
+    const player2 = new Player('player2', 'Player 2', new Vec2D(2, 0));
+
+    server.getPlayerManager().addPlayer(player1);
+    server.getPlayerManager().addPlayer(player2);
+
+    const world = server.getWorld('default');
+    if (world) {
+      world.addEntity(player1);
+      world.addEntity(player2);
+    }
+
+    await new Promise<void>((resolve) => {
+      clientSocket.connect();
+
+      clientSocket.on('connect', () => {
+        clientSocket.emit(ClientEvent.JOIN_WORLD, {
+          playerId: 'player1',
+          worldId: 'default',
+          spawnPoint: { x: 0, y: 0 }
+        });
+
+        clientSocket.on(ServerEvent.WORLD_STATE, () => {
+          clientSocket.emit(ClientEvent.MOVE, {
+            playerId: 'player1',
+            position: { x: 3, y: 0 },
+            sequence: 1
+          });
+
+          setTimeout(() => {
+            const updatedPlayer = server.getPlayerManager().getPlayer('player1');
+            expect(updatedPlayer?.position.x).toBeLessThan(2);
+            resolve();
+          }, 50);
+        });
+      });
+    });
+  });
+
+  it('should reject out-of-order move sequences', async () => {
+    const player = new Player('test-player', 'TestPlayer', new Vec2D(0, 0));
+    server.getPlayerManager().addPlayer(player);
+
+    let receivedSequence = 0;
+
+    await new Promise<void>((resolve) => {
+      clientSocket.connect();
+
+      clientSocket.on('connect', () => {
+        clientSocket.emit(ClientEvent.JOIN_WORLD, {
+          playerId: 'test-player',
+          worldId: 'default',
+          spawnPoint: { x: 0, y: 0 }
+        });
+
+        clientSocket.on(ServerEvent.WORLD_STATE, () => {
+          clientSocket.on(ServerEvent.PLAYER_MOVED, (data: any) => {
+            receivedSequence = data.sequence;
+          });
+
+          clientSocket.emit(ClientEvent.MOVE, {
+            playerId: 'test-player',
+            position: { x: 1, y: 0 },
+            sequence: 2
+          });
+
+          setTimeout(() => {
+            clientSocket.emit(ClientEvent.MOVE, {
+              playerId: 'test-player',
+              position: { x: 2, y: 0 },
+              sequence: 1
+            });
+
+            setTimeout(() => {
+              expect(receivedSequence).toBe(2);
+              resolve();
+            }, 50);
+          }, 50);
+        });
+      });
+    });
+  });
+
+  it('should enforce move rate limiting', async () => {
+    const player = new Player('test-player', 'TestPlayer', new Vec2D(0, 0));
+    server.getPlayerManager().addPlayer(player);
+
+    await new Promise<void>((resolve) => {
+      clientSocket.connect();
+
+      clientSocket.on('connect', () => {
+        clientSocket.emit(ClientEvent.JOIN_WORLD, {
+          playerId: 'test-player',
+          worldId: 'default',
+          spawnPoint: { x: 0, y: 0 }
+        });
+
+        clientSocket.on(ServerEvent.WORLD_STATE, () => {
+          let moveCount = 0;
+
+          clientSocket.on(ServerEvent.PLAYER_MOVED, () => {
+            moveCount++;
+          });
+
+          for (let i = 1; i <= 20; i++) {
+            setTimeout(() => {
+              clientSocket.emit(ClientEvent.MOVE, {
+                playerId: 'test-player',
+                position: { x: i, y: 0 },
+                sequence: i
+              });
+            }, i * 5);
+          }
+
+          setTimeout(() => {
+            expect(moveCount).toBeLessThan(20);
+            resolve();
+          }, 200);
+        });
+      });
+    });
+  });
+});
+EOF
+
+# 2. Исправляем player-manager.test.ts: используем прямой доступ к lastMoveTimes
+cat > packages/server/src/__tests__/player-manager.test.ts << 'EOF'
+import { describe, it, expect, beforeEach } from 'vitest';
+import { PlayerManager } from '../managers/player-manager.js';
+import { Server } from '../core/server.js';
+import { Vec2D } from '@vg2/core';
+import { Player } from '@vg2/core';
+
+describe('PlayerManager', () => {
+  let server: Server;
+  let playerManager: PlayerManager;
+
+  beforeEach(() => {
+    server = new Server();
+    playerManager = new PlayerManager(server);
+  });
+
+  it('should add and get player', () => {
+    const player = new Player('1', 'TestPlayer', new Vec2D(0, 0));
+    playerManager.addPlayer(player);
+
+    const retrieved = playerManager.getPlayer('1');
+    expect(retrieved).toBeDefined();
+    expect(retrieved?.id).toBe('1');
+    expect(retrieved?.name).toBe('TestPlayer');
+  });
+
+  it('should remove player', () => {
+    const player = new Player('1', 'TestPlayer', new Vec2D(0, 0));
+    playerManager.addPlayer(player);
+
+    const removed = playerManager.removePlayer('1');
+    expect(removed).toBe(true);
+    expect(playerManager.getPlayer('1')).toBeUndefined();
+  });
+
+  it('should move player', () => {
+    const player = new Player('1', 'TestPlayer', new Vec2D(0, 0));
+    playerManager.addPlayer(player);
+
+    const world = server.getWorld('default');
+    if (world) {
+      world.addEntity(player);
+      player.worldId = 'default';
+    }
+
+    // Сбрасываем lastMoveTime, чтобы избежать rate limit
+    (playerManager as any).lastMoveTimes.set('1', Date.now() - 100);
+
+    const newPosition = new Vec2D(3, 3);
+    const moved = playerManager.movePlayer('1', newPosition);
+
+    expect(moved).toBe(true);
+    expect(player.position.x).toBe(3);
+    expect(player.position.y).toBe(3);
+  });
+
+  it('should update player session', () => {
+    const player = new Player('1', 'TestPlayer', new Vec2D(0, 0));
+    playerManager.addPlayer(player);
+
+    const updated = playerManager.updatePlayerSession('1', 'session123');
+    expect(updated).toBe(true);
+    expect(player.sessionId).toBe('session123');
+  });
+
+  it('should get players in default world', () => {
+    const player = new Player('1', 'TestPlayer', new Vec2D(0, 0));
+    playerManager.addPlayer(player);
+
+    player.worldId = 'default';
+    const world = server.getWorld('default');
+    if (world) {
+      world.addEntity(player);
+    }
+
+    const players = playerManager.getPlayersInWorld('default');
+    expect(players.length).toBeGreaterThan(0);
+    expect(players[0].id).toBe('1');
+  });
+});
+EOF
+
+# 3. Исправляем socket.test.ts: добавляем сброс lastMoveTime и увеличиваем таймаут
 cat > packages/server/src/__tests__/socket.test.ts << 'EOF'
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { Server } from '../core/server.js';
 import { io as Client } from 'socket.io-client';
 import { Vec2D, Player } from '@vg2/core';
@@ -73,7 +381,10 @@ describe('Socket.IO Server', () => {
       player.worldId = 'default';
     }
 
-    await new Promise<void>((resolve) => {
+    // Сбрасываем lastMoveTime, чтобы разрешить движение сразу
+    (server.getPlayerManager() as any).lastMoveTimes.set('test-player', Date.now() - 100);
+
+    await new Promise<void>((resolve, reject) => {
       clientSocket.connect();
 
       clientSocket.on('connect', () => {
@@ -81,8 +392,11 @@ describe('Socket.IO Server', () => {
           playerId: 'test-player',
           worldId: 'default'
         });
+      });
 
-        clientSocket.on(ServerEvent.WORLD_STATE, () => {
+      clientSocket.on(ServerEvent.WORLD_STATE, () => {
+        // Небольшая задержка, чтобы убедиться, что сервер готов
+        setTimeout(() => {
           clientSocket.emit(ClientEvent.MOVE, {
             playerId: 'test-player',
             position: { x: 3, y: 3 },
@@ -91,11 +405,19 @@ describe('Socket.IO Server', () => {
 
           setTimeout(() => {
             const updatedPlayer = server.getPlayerManager().getPlayer('test-player');
-            expect(updatedPlayer?.position.x).toBe(3);
-            expect(updatedPlayer?.position.y).toBe(3);
-            resolve();
+            try {
+              expect(updatedPlayer?.position.x).toBe(3);
+              expect(updatedPlayer?.position.y).toBe(3);
+              resolve();
+            } catch (e) {
+              reject(e);
+            }
           }, 100);
-        });
+        }, 20);
+      });
+
+      clientSocket.on(ServerEvent.ERROR, (data: any) => {
+        reject(new Error(`Server error: ${data.code} - ${data.message}`));
       });
     });
   });
@@ -180,58 +502,17 @@ describe('Socket.IO Server', () => {
 });
 EOF
 
-# 2. Добавляем задержку в player-manager.test.ts перед вызовом movePlayer
-sed -i '/it.*should move player/,/^  });/ {
-  /const newPosition = new Vec2D(3, 3);/ {
-    a\
-\
-    setTimeout(() => {
-  }
-  /expect(moved).toBe(true);/ {
-    i\
-    }, 20);
-  }
-}' packages/server/src/__tests__/player-manager.test.ts
-
-# Более простой способ: переписать тест с использованием async/await и setTimeout
-sed -i 's/it('\''should move player'\'', () => {/it('\''should move player'\'', async () => {/' packages/server/src/__tests__/player-manager.test.ts
-sed -i '/const newPosition = new Vec2D(3, 3);/a\
-    await new Promise(resolve => setTimeout(resolve, 20));' packages/server/src/__tests__/player-manager.test.ts
-
-# 3. Добавляем задержку в integration.test.ts
-sed -i 's/it('\''should handle complete player lifecycle'\'', () => {/it('\''should handle complete player lifecycle'\'', async () => {/' packages/server/src/__tests__/integration.test.ts
-sed -i '/playerManager.updatePlayerWorld('\''player1'\'', '\''default'\'');/a\
-    await new Promise(resolve => setTimeout(resolve, 20));' packages/server/src/__tests__/integration.test.ts
-
-# 4. Добавляем задержку перед первым движением в out-of-order тесте
-sed -i '/it.*should reject out-of-order move sequences/,/^  });/ {
-  /clientSocket.on(ServerEvent.WORLD_STATE, () => {/ {
-    a\
-          setTimeout(() => {
-  }
-  /clientSocket.emit(ClientEvent.MOVE.*sequence: 2/,/});/ {
-    /clientSocket.emit/ {
-      i\
-          }, 50);
-    }
-  }
-}' packages/server/src/__tests__/movement-collision.test.ts
-
-# 5. В rate limiting увеличиваем количество движений до 20 и проверяем что count < 20
-sed -i 's/for (let i = 1; i <= 10; i++)/for (let i = 1; i <= 20; i++)/g' packages/server/src/__tests__/movement-collision.test.ts
-sed -i 's/expect(moveCount).toBeLessThan(10);/expect(moveCount).toBeLessThan(20);/g' packages/server/src/__tests__/movement-collision.test.ts
-
-# 6. Обновляем PROGRESS.md
+# 4. Обновляем PROGRESS.md
 cat >> PROGRESS.md << 'EOF'
 
-- [x] Исправлен синтаксис в socket.test.ts
-- [x] Добавлены задержки в тесты для избежания rate limit (player-manager, integration)
-- [x] Улучшены тесты out-of-order и rate limiting
+- [x] Восстановлен movement-collision.test.ts с корректным синтаксисом
+- [x] Исправлен player-manager.test.ts: сброс lastMoveTime и правильная проверка moved
+- [x] Исправлен socket.test.ts: сброс lastMoveTime и увеличены задержки
 EOF
 
-# 7. Коммит
+# 5. Коммит
 git add .
-git commit -m "fix: исправлены тесты движения и синтаксис socket.test.ts"
+git commit -m "fix: исправлены тесты player-manager, socket и movement-collision"
 
-# 8. Запуск тестов
+# 6. Запуск тестов
 npm test

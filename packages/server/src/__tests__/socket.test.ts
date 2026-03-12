@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { Server } from '../core/server.js';
 import { io as Client } from 'socket.io-client';
 import { Vec2D, Player } from '@vg2/core';
@@ -69,7 +69,10 @@ describe('Socket.IO Server', () => {
       player.worldId = 'default';
     }
 
-    await new Promise<void>((resolve) => {
+    // Сбрасываем lastMoveTime, чтобы разрешить движение сразу
+    (server.getPlayerManager() as any).lastMoveTimes.set('test-player', Date.now() - 100);
+
+    await new Promise<void>((resolve, reject) => {
       clientSocket.connect();
 
       clientSocket.on('connect', () => {
@@ -77,8 +80,11 @@ describe('Socket.IO Server', () => {
           playerId: 'test-player',
           worldId: 'default'
         });
+      });
 
-        clientSocket.on(ServerEvent.WORLD_STATE, () => {
+      clientSocket.on(ServerEvent.WORLD_STATE, () => {
+        // Небольшая задержка, чтобы убедиться, что сервер готов
+        setTimeout(() => {
           clientSocket.emit(ClientEvent.MOVE, {
             playerId: 'test-player',
             position: { x: 3, y: 3 },
@@ -87,11 +93,19 @@ describe('Socket.IO Server', () => {
 
           setTimeout(() => {
             const updatedPlayer = server.getPlayerManager().getPlayer('test-player');
-            expect(updatedPlayer?.position.x).toBe(3);
-            expect(updatedPlayer?.position.y).toBe(3);
-            resolve();
+            try {
+              expect(updatedPlayer?.position.x).toBe(3);
+              expect(updatedPlayer?.position.y).toBe(3);
+              resolve();
+            } catch (e) {
+              reject(e);
+            }
           }, 100);
-        });
+        }, 20);
+      });
+
+      clientSocket.on(ServerEvent.ERROR, (data: any) => {
+        reject(new Error(`Server error: ${data.code} - ${data.message}`));
       });
     });
   });
