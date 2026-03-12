@@ -7,32 +7,34 @@ export class CollisionDetector {
 
   public canMove(from: Vec2D, to: Vec2D, entityId: string): boolean {
     const distance = from.distance(to);
-    
+
     if (distance > 10) {
       return false;
     }
 
     const chunks = this.world.getChunksInRange(to.x, to.y, 1);
-    
+
     for (const chunk of chunks) {
-      const localX = Math.floor(to.x % Chunk.SIZE);
-      const localY = Math.floor(to.y % Chunk.SIZE);
-      
-      const tile = chunk.getTile(localX, localY);
-      if (tile && tile.solid) {
-        return false;
+      const localX = Math.floor(to.x - chunk.x * Chunk.SIZE);
+      const localY = Math.floor(to.y - chunk.y * Chunk.SIZE);
+
+      if (localX >= 0 && localX < Chunk.SIZE && localY >= 0 && localY < Chunk.SIZE) {
+        const tile = chunk.getTile(localX, localY);
+        if (tile && tile.solid) {
+          return false;
+        }
       }
-      
+
       const entities = chunk.getAllEntities();
       for (const entity of entities) {
         if (entity.id !== entityId && entity.type === 'player') {
-          if (entity.position.distance(to) < 1) {
+          if (entity.position.distance(to) < 1.0) {
             return false;
           }
         }
       }
     }
-    
+
     return true;
   }
 
@@ -40,33 +42,29 @@ export class CollisionDetector {
     if (this.canMove(from, to, entityId)) {
       return to;
     }
-    
-    const step = 0.5;
+
     const direction = new Vec2D(to.x - from.x, to.y - from.y);
     const distance = from.distance(to);
-    
-    if (distance === 0) return from;
-    
-    const normalizedDir = new Vec2D(
-      direction.x / distance,
-      direction.y / distance
-    );
-    
-    for (let d = step; d <= distance; d += step) {
+
+    if (distance < 0.1) return from;
+
+    const steps = Math.ceil(distance / 0.1);
+    let lastValidPos = from;
+
+    for (let i = 1; i <= steps; i++) {
+      const t = i / steps;
       const checkPos = new Vec2D(
-        from.x + normalizedDir.x * d,
-        from.y + normalizedDir.y * d
+        from.x + direction.x * t,
+        from.y + direction.y * t
       );
-      
-      if (!this.canMove(from, checkPos, entityId)) {
-        const prevPos = new Vec2D(
-          from.x + normalizedDir.x * Math.max(0, d - step),
-          from.y + normalizedDir.y * Math.max(0, d - step)
-        );
-        return prevPos;
+
+      if (this.canMove(from, checkPos, entityId)) {
+        lastValidPos = checkPos;
+      } else {
+        break;
       }
     }
-    
-    return from;
+
+    return lastValidPos;
   }
 }

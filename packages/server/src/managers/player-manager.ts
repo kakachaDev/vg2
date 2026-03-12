@@ -130,16 +130,22 @@ export class PlayerManager {
           world.updateEntityPosition(playerId, authorizedPosition);
         }
       }
+      
+      if (sequence === undefined) {
+        return true;
+      }
+    } else if (sequence === undefined) {
+      return false;
     }
 
     if (sequence !== undefined) {
       return {
-        success: true,
+        success: !player.position.eq(player.position),
         authorizedPosition: player.position,
         sequence: this.moveSequences.get(playerId) || 0
       };
     }
-    return true;
+    return false;
   }
 
   public getPlayersInWorld(worldId: string): Player[] {
