@@ -3,7 +3,14 @@ import { Server as SocketServer, Socket } from 'socket.io';
 import { World } from '../world/world.js';
 import { PlayerManager } from '../managers/player-manager.js';
 import { ClientEvent, ServerEvent } from '@vg2/shared';
-import { EventHandler, JoinWorldHandler, MoveHandler, ChatHandler, LeaveWorldHandler, DisconnectHandler } from '../handlers/index.js';
+import {
+  EventHandler,
+  JoinWorldHandler,
+  MoveHandler,
+  ChatHandler,
+  LeaveWorldHandler,
+  DisconnectHandler,
+} from '../handlers/index.js';
 
 export class Server {
   private worlds: Map<string, World> = new Map();

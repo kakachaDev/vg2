@@ -32,7 +32,10 @@ export class ChatHandler extends BaseHandler {
           socket.to(targetPlayer.sessionId).emit(ServerEvent.CHAT_MESSAGE, messagePayload);
         }
       } else if (player.worldId) {
-        server.getIO()?.to(`world:${player.worldId}`).emit(ServerEvent.CHAT_MESSAGE, messagePayload);
+        server
+          .getIO()
+          ?.to(`world:${player.worldId}`)
+          .emit(ServerEvent.CHAT_MESSAGE, messagePayload);
       }
     } catch (error) {
       socket.emit(ServerEvent.ERROR, {

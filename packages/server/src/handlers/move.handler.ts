@@ -21,7 +21,9 @@ export class MoveHandler extends BaseHandler {
       }
 
       const newPos = Vec2D.from(payload.position);
-      const result = server.getPlayerManager().movePlayer(payload.playerId, newPos, payload.sequence);
+      const result = server
+        .getPlayerManager()
+        .movePlayer(payload.playerId, newPos, payload.sequence);
 
       if (player.worldId) {
         const world = server.getWorld(player.worldId);
