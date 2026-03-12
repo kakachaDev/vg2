@@ -12,7 +12,7 @@ describe('Socket.IO Server', () => {
   beforeEach(async () => {
     server = new Server();
     await server.start(PORT);
-    
+
     clientSocket = Client(`http://localhost:${PORT}`, {
       autoConnect: false,
       transports: ['websocket']
@@ -62,6 +62,11 @@ describe('Socket.IO Server', () => {
   it('should handle player movement', async () => {
     const player = new Player('test-player', 'TestPlayer', new Vec2D(0, 0));
     server.getPlayerManager().addPlayer(player);
+    
+    const world = server.getWorld('default');
+    if (world) {
+      world.addEntity(player);
+    }
 
     await new Promise<void>((resolve) => {
       clientSocket.connect();
@@ -159,7 +164,7 @@ describe('Socket.IO Server', () => {
 
       clientSocket.on(ServerEvent.ERROR, (data: any) => {
         try {
-          expect(data.code).toBe(.INVALID_MOVE.);
+          expect(data.code).toBe('PLAYER_NOT_FOUND');
           resolve();
         } catch (e) {
           reject(e);

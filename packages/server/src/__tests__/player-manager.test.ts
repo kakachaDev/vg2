@@ -35,6 +35,12 @@ describe('PlayerManager', () => {
   it('should move player', () => {
     const player = new Player('1', 'TestPlayer', new Vec2D(0, 0));
     playerManager.addPlayer(player);
+    
+    const world = server.getWorld('default');
+    if (world) {
+      world.addEntity(player);
+      player.worldId = 'default';
+    }
 
     const newPosition = new Vec2D(10, 10);
     const moved = playerManager.movePlayer('1', newPosition);
@@ -56,7 +62,7 @@ describe('PlayerManager', () => {
   it('should get players in default world', () => {
     const player = new Player('1', 'TestPlayer', new Vec2D(0, 0));
     playerManager.addPlayer(player);
-    
+
     player.worldId = 'default';
     const world = server.getWorld('default');
     if (world) {

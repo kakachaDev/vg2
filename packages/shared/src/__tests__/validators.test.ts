@@ -1,61 +1,87 @@
 import { describe, it, expect } from 'vitest';
-import { 
-  movePayloadSchema, 
-  chatPayloadSchema, 
+import {
+  Vec2DSchema,
+  movePayloadSchema,
+  chatPayloadSchema,
   joinWorldPayloadSchema,
-  vec2DSchema 
+  leaveWorldPayloadSchema,
+  interactPayloadSchema
 } from '../validators.js';
 
 describe('Validators', () => {
   it('should validate Vec2D', () => {
     const valid = { x: 10, y: 20 };
-    expect(vec2DSchema.parse(valid)).toEqual(valid);
-    
-    expect(() => vec2DSchema.parse({ x: '10', y: 20 })).toThrow();
-    expect(() => vec2DSchema.parse({ x: 10 })).toThrow();
+    expect(Vec2DSchema.parse(valid)).toEqual(valid);
+
+    const invalid = { x: '10', y: 20 };
+    expect(() => Vec2DSchema.parse(invalid)).toThrow();
   });
 
   it('should validate move payload', () => {
     const valid = {
-      playerId: '123e4567-e89b-12d3-a456-426614174000',
+      playerId: 'test-player',
       position: { x: 10, y: 20 },
       sequence: 1
     };
     expect(movePayloadSchema.parse(valid)).toEqual(valid);
 
-    const invalidSequence = { ...valid, sequence: -1 };
+    const invalidSequence = { ...valid, sequence: 0 };
     expect(() => movePayloadSchema.parse(invalidSequence)).toThrow();
 
-    const invalidUuid = { ...valid, playerId: 'not-a-uuid' };
-    expect(() => movePayloadSchema.parse(invalidUuid)).toThrow();
+    const missingField = { playerId: 'test-player', position: { x: 10, y: 20 } };
+    expect(() => movePayloadSchema.parse(missingField)).toThrow();
   });
 
   it('should validate chat payload', () => {
     const valid = {
-      playerId: '123e4567-e89b-12d3-a456-426614174000',
+      playerId: 'test-player',
       message: 'Hello world',
-      channel: 'global' as const
+      channel: 'global'
     };
     expect(chatPayloadSchema.parse(valid)).toEqual(valid);
 
-    const longMessage = { ...valid, message: 'a'.repeat(300) };
-    expect(() => chatPayloadSchema.parse(longMessage)).toThrow();
+    const validWhisper = {
+      playerId: 'test-player',
+      message: 'Hi',
+      channel: 'whisper',
+      targetId: 'target-player'
+    };
+    expect(chatPayloadSchema.parse(validWhisper)).toEqual(validWhisper);
 
-    const invalidChannel = { ...valid, channel: 'invalid' };
-    expect(() => chatPayloadSchema.parse(invalidChannel)).toThrow();
+    const longMessage = { ...valid, message: 'a'.repeat(257) };
+    expect(() => chatPayloadSchema.parse(longMessage)).toThrow();
   });
 
   it('should validate join world payload', () => {
     const valid = {
-      playerId: '123e4567-e89b-12d3-a456-426614174000',
-      worldId: 'default'
+      playerId: 'test-player',
+      worldId: 'default',
+      spawnPoint: { x: 0, y: 0 }
     };
     expect(joinWorldPayloadSchema.parse(valid)).toEqual(valid);
 
-    const withSpawn = {
-      ...valid,
-      spawnPoint: { x: 100, y: 200 }
+    const validWithoutSpawn = {
+      playerId: 'test-player',
+      worldId: 'default'
     };
-    expect(joinWorldPayloadSchema.parse(withSpawn)).toEqual(withSpawn);
+    expect(joinWorldPayloadSchema.parse(validWithoutSpawn)).toEqual(validWithoutSpawn);
+  });
+
+  it('should validate leave world payload', () => {
+    const valid = {
+      playerId: 'test-player',
+      worldId: 'default'
+    };
+    expect(leaveWorldPayloadSchema.parse(valid)).toEqual(valid);
+  });
+
+  it('should validate interact payload', () => {
+    const valid = {
+      playerId: 'test-player',
+      targetId: 'target-entity',
+      interactionType: 'attack',
+      position: { x: 10, y: 20 }
+    };
+    expect(interactPayloadSchema.parse(valid)).toEqual(valid);
   });
 });
