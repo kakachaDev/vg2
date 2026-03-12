@@ -10,9 +10,11 @@
     "test": "vitest"
   },
   "dependencies": {
+    "@types/socket.io": "^3.0.1",
     "@vg2/core": "^1.0.0",
     "@vg2/shared": "^1.0.0",
-    "@vg2/types": "^1.0.0"
+    "@vg2/types": "^1.0.0",
+    "socket.io": "^4.8.3"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

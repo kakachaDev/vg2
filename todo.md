@@ -43,10 +43,10 @@
 
 ## 6. Сеть и протокол (Socket.io)
 
-- [ ] Установить socket.io и socket.io-client
-- [ ] Создать в shared типы событий: C2S_MOVE, C2S_INTERACT, C2S_CHAT, S2C_CHUNK и др.
-- [ ] Написать валидаторы (zod)
-- [ ] Протестировать соединение
+- [x] Установить socket.io и socket.io-client
+- [x] Создать в shared типы событий: C2S_MOVE, C2S_INTERACT, C2S_CHAT, S2C_CHUNK и др.
+- [x] Написать валидаторы (zod)
+- [x] Протестировать соединение
 
 ## 7. Обработка игроков и авторитетность
 

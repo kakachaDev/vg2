@@ -11,17 +11,12 @@ export class PlayerManager {
 
   public addPlayer(player: Player): void {
     this.players.set(player.id, player);
-    
-    const world = this.server.getWorld('default');
-    if (world) {
-      world.addEntity(player);
-    }
   }
 
   public removePlayer(playerId: string): boolean {
     const player = this.players.get(playerId);
-    if (player) {
-      const world = this.server.getWorld('default');
+    if (player && player.worldId) {
+      const world = this.server.getWorld(player.worldId);
       if (world) {
         world.removeEntity(playerId);
       }
@@ -43,17 +38,16 @@ export class PlayerManager {
       return false;
     }
 
-    const world = this.server.getWorld('default');
-    if (!world) {
-      return false;
-    }
-
+    const world = player.worldId ? this.server.getWorld(player.worldId) : null;
+    
     const oldPosition = player.position;
     player.position = newPosition;
-    
-    world.removeEntity(playerId);
-    world.addEntity(player);
-    
+
+    if (world) {
+      world.removeEntity(playerId);
+      world.addEntity(player);
+    }
+
     return true;
   }
 
@@ -71,6 +65,29 @@ export class PlayerManager {
       return false;
     }
     player.sessionId = sessionId;
+    return true;
+  }
+
+  public updatePlayerWorld(playerId: string, worldId: string): boolean {
+    const player = this.players.get(playerId);
+    if (!player) {
+      return false;
+    }
+
+    if (player.worldId) {
+      const oldWorld = this.server.getWorld(player.worldId);
+      if (oldWorld) {
+        oldWorld.removeEntity(playerId);
+      }
+    }
+
+    player.worldId = worldId;
+
+    const newWorld = this.server.getWorld(worldId);
+    if (newWorld) {
+      newWorld.addEntity(player);
+    }
+
     return true;
   }
 }

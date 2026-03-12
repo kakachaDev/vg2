@@ -6,12 +6,15 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "dev": "tsc --watch",
-    "test": "vitest"
+    "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "@vg2/core": "^1.0.0",
+    "@vg2/types": "^1.0.0",
+    "zod": "^3.22.4"
   },
   "devDependencies": {
-    "@types/node": "^20.0.0",
-    "typescript": "^5.4.5",
-    "vitest": "^1.5.0"
+    "socket.io-client": "^4.7.2",
+    "typescript": "^5.4.5"
   }
 }
