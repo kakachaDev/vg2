@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main, master, develop]
+    branches: [master]
   pull_request:
-    branches: [main, master, develop]
+    branches: [master]
 
 jobs:
   test:
@@ -12,7 +12,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [22.x]
+        node-version: [22.12.0]
 
     steps:
       - uses: actions/checkout@v4
@@ -30,7 +30,7 @@ jobs:
         run: npm run format:check
 
       - name: Build packages
-        run: npm run build
+        run: npm run build:ci
 
       - name: Run tests with coverage
         run: npm run test:coverage
