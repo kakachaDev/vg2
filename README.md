@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/kakachaDev/vg2/actions/workflows/ci.yml/badge.svg)](https://github.com/kakachaDev/vg2/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/kakachaDev/vg2/branch/main/graph/badge.svg)](https://codecov.io/gh/kakachaDev/vg2)
-[![Node Version](https://img.shields.io/node/v/vg2)](https://nodejs.org)
+<!-- [![Node Version](https://img.shields.io/node/v/vg2)](https://nodejs.org) -->
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 Authoritative server for 2D multiplayer games. Supports up to 1000 concurrent players with world instances, chunk-based visibility, and seamless world transitions.
