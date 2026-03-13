@@ -1,4 +1,4 @@
-# VG2 - Voxel Game 2 Server
+# VG2 Server
 
 [![CI](https://github.com/kakachaDev/vg2/actions/workflows/ci.yml/badge.svg)](https://github.com/kakachaDev/vg2/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/kakachaDev/vg2/branch/main/graph/badge.svg)](https://codecov.io/gh/kakachaDev/vg2)
