@@ -8,7 +8,7 @@
   ],
   "scripts": {
     "build": "npm run build --workspaces",
-    "build:ci": "npm run build --workspace=@vg2/shared && npm run build --workspace=@vg2/core && npm run build --workspaces --workspace-concurrency=1",
+    "build:ci": "npm run build --workspace=@vg2/core && npm run build --workspace=@vg2/shared && npm run build --workspaces --workspace-concurrency=1",
     "test": "vitest",
     "test:coverage": "vitest --coverage",
     "typecheck": "npm run typecheck --workspaces",
