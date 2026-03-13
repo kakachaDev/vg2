@@ -30,16 +30,19 @@ Please report (suspected) security vulnerabilities to **[INSERT SECURITY EMAIL]*
 ## Security Measures in VG2
 
 ### Network Layer
+
 - All socket connections are validated
 - Rate limiting prevents DoS attacks
 - Input validation using Zod schemas
 
 ### Game Logic
+
 - Authoritative server prevents client cheating
 - Movement validation prevents speed hacks
 - Collision detection prevents wall hacks
 
 ### Data Storage
+
 - No sensitive data in memory
 - Redis encryption for stored sessions
 - Regular security audits
