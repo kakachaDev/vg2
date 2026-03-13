@@ -101,7 +101,6 @@ describe('Integration Tests', () => {
       });
 
       clientSocket.on(ServerEvent.WORLD_STATE, () => {
-
         clientSocket.emit(ClientEvent.MOVE, {
           playerId: 'player1',
           position: { x: 20, y: 0 },

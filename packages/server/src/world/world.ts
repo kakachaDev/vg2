@@ -119,7 +119,6 @@ export class World {
     return Array.from(this.playerChunks.get(entityId) || []);
   }
 
-
   public updatePlayerSubscriptions(
     playerId: string,
     centerX: number,

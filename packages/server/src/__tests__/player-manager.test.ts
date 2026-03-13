@@ -42,7 +42,6 @@ describe('PlayerManager', () => {
       player.worldId = 'default';
     }
 
-
     (playerManager as any).lastMoveTimes.set('1', Date.now() - 100);
 
     const newPosition = new Vec2D(3, 3);

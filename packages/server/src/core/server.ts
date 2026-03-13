@@ -75,14 +75,12 @@ export class Server {
     this.io.on('connection', (socket: Socket) => {
       console.log(`Client connected: ${socket.id}`);
 
-
       for (const [event, handler] of this.handlers.entries()) {
         if (event === 'disconnect') continue;
         socket.on(event as string, (data: unknown) => {
           handler.handle(socket, data, this);
         });
       }
-
 
       socket.on('disconnect', () => {
         const handler = this.handlers.get('disconnect');

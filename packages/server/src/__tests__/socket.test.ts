@@ -69,7 +69,6 @@ describe('Socket.IO Server', () => {
       player.worldId = 'default';
     }
 
-
     (server.getPlayerManager() as any).lastMoveTimes.set('test-player', Date.now() - 100);
 
     await new Promise<void>((resolve, reject) => {
@@ -83,7 +82,6 @@ describe('Socket.IO Server', () => {
       });
 
       clientSocket.on(ServerEvent.WORLD_STATE, () => {
-
         setTimeout(() => {
           clientSocket.emit(ClientEvent.MOVE, {
             playerId: 'test-player',
