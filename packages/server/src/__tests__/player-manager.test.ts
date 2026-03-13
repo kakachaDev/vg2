@@ -42,7 +42,7 @@ describe('PlayerManager', () => {
       player.worldId = 'default';
     }
 
-    // Сбрасываем lastMoveTime, чтобы избежать rate limit
+
     (playerManager as any).lastMoveTimes.set('1', Date.now() - 100);
 
     const newPosition = new Vec2D(3, 3);

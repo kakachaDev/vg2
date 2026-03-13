@@ -81,7 +81,6 @@ describe('Integration Tests', () => {
     expect(chunk1).toBeDefined();
     expect(chunk2).toBeDefined();
 
-    // Подключаем клиент для получения чанков
     clientSocket = Client(`http://localhost:${PORT}`, {
       autoConnect: false,
       transports: ['websocket'],
@@ -102,7 +101,7 @@ describe('Integration Tests', () => {
       });
 
       clientSocket.on(ServerEvent.WORLD_STATE, () => {
-        // Двигаем игрока в другой чанк
+
         clientSocket.emit(ClientEvent.MOVE, {
           playerId: 'player1',
           position: { x: 20, y: 0 },

@@ -197,7 +197,7 @@ describe('Movement with Collision Detection', () => {
           });
         } else if (data.sequence === 1) {
           movedWithSeq1 = true;
-          // Движение с sequence 1 не должно быть успешным
+
           reject(new Error('Out-of-order move was accepted'));
         }
       });

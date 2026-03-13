@@ -119,7 +119,7 @@ export class World {
     return Array.from(this.playerChunks.get(entityId) || []);
   }
 
-  // Система подписки на чанки
+
   public updatePlayerSubscriptions(
     playerId: string,
     centerX: number,

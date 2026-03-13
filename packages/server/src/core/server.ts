@@ -31,7 +31,7 @@ export class Server {
     this.registerHandler(ClientEvent.MOVE, new MoveHandler());
     this.registerHandler(ClientEvent.CHAT, new ChatHandler());
     this.registerHandler(ClientEvent.LEAVE_WORLD, new LeaveWorldHandler());
-    // Специальный ключ для disconnect (не является ClientEvent)
+
     this.handlers.set('disconnect', new DisconnectHandler());
   }
 
@@ -75,15 +75,15 @@ export class Server {
     this.io.on('connection', (socket: Socket) => {
       console.log(`Client connected: ${socket.id}`);
 
-      // Регистрируем обработчики для всех событий ClientEvent
+
       for (const [event, handler] of this.handlers.entries()) {
-        if (event === 'disconnect') continue; // disconnect обрабатывается отдельно
+        if (event === 'disconnect') continue;
         socket.on(event as string, (data: unknown) => {
           handler.handle(socket, data, this);
         });
       }
 
-      // Обработчик disconnect
+
       socket.on('disconnect', () => {
         const handler = this.handlers.get('disconnect');
         if (handler) {
