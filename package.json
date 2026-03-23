@@ -20,6 +20,6 @@
     "@vitest/coverage-v8": "^4.1.0",
     "prettier": "^3.2.5",
     "typescript": "^5.4.5",
-    "vitest": "^4.1.0"
+    "vitest": "^4.1.1"
   }
 }
